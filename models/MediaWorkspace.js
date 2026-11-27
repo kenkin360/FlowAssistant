@@ -32,7 +32,7 @@ var MediaWorkspace=Function.extend(Object, function () {
 	_['public'].Add=function (value) {
 		let media=this.ToMedia(value);
 		if (media instanceof Media.Image||media instanceof Media.Video) {
-			this.Apply({activeMedia: media, currentMedia: media, history: [media, ...this.History]});
+			this.Apply(this.History.includes(media)?{activeMedia: media, currentMedia: media}:{activeMedia: media, currentMedia: media, history: [media, ...this.History]});
 		}
 		else this.Apply({currentMedia: media});
 		return media;

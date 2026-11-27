@@ -62,7 +62,7 @@ var Methods=Function.extend(Object, function () {
 			}
 		}
 		else if (value&&'object'===typeof value&&'image' in value) {
-			output=await this.ImageService.ReadMethodResult(value, image, methodName);
+			output=value.image?.mediaId?value.image:await this.ImageService.ReadMethodResult(value, image, methodName);
 		}
 		else if (value?.base64&&/^image\//.test(value.mimeType)) {
 			output=await this.ImageService.ReadMethodResult(value, image, methodName);

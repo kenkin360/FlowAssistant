@@ -12,7 +12,7 @@ var ImageService=Function.extend(Object, function () {
 	_['public'].GetWorkspace=function () { return _(this).m_workspace; };
 	_['public'].IsGenerating=function () { return _(this).m_generating; };
 	_['public'].GetInstruction=function () {
-		return '若有待使用者確認的影像生成提示詞，回覆同一 JSON 物件的 suggestedPrompt、aspectRatio。';
+		return '影像生成使用 MethodName: ImageService.Generate，Arguments 為 {prompt,aspectRatio}；可選 useCurrentImage: true 以目前選取的影像作參考。若有待使用者確認的影像生成提示詞，回覆同一 JSON 物件的 suggestedPrompt、aspectRatio。';
 	};
 	_['public'].GetRequestContext=async function () {
 		let workspace=this.GetWorkspace();
@@ -40,6 +40,7 @@ var ImageService=Function.extend(Object, function () {
 			if (!image) return;
 			this.GetWorkspace().Add(image);
 			await _(this).m_notify('Media selected', {Title: image.title, Width: image.width, Height: image.height}, image);
+			return {message: 'Media selected: '+image.title, artifact: this.GetWorkspace().GetActiveMedia()};
 		}
 		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
@@ -49,6 +50,7 @@ var ImageService=Function.extend(Object, function () {
 			if (!image) return;
 			this.GetWorkspace().Add(image);
 			await _(this).m_notify('Camera image captured', {Title: image.title, Width: image.width, Height: image.height}, image);
+			return {message: 'Camera image captured: '+image.title, artifact: this.GetWorkspace().GetActiveMedia()};
 		}
 		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
@@ -61,9 +63,11 @@ var ImageService=Function.extend(Object, function () {
 		workspace.NotifyChanged();
 		try {
 			let selected=workspace.GetActiveMedia();
-			let result=await this.Generate(text, selected instanceof Media.Image?await workspace.GetLegacyMedia(selected):null, workspace.GetRatio(), workspace.History.length+1);
-			workspace.Add(result.Image);
-			await $this.m_notify('Image generation completed', {Title: result.Image.title, Prompt: text, Width: result.Image.width, Height: result.Image.height}, result.Image);
+			let result=await this.Generate({prompt: text, aspectRatio: workspace.GetRatio(), useCurrentImage: selected instanceof Media.Image});
+			let image=result.image;
+			workspace.Add(image);
+			await $this.m_notify('Image generation completed', {Title: image.title, Prompt: text, Width: image.width, Height: image.height}, image);
+			return {message: result.message, artifact: workspace.GetActiveMedia()};
 		}
 		catch (error) { await $this.m_notify('Operation failed', {Error: error.message||String(error)}); }
 		finally { $this.m_generating=false; workspace.NotifyChanged(); }
@@ -73,6 +77,7 @@ var ImageService=Function.extend(Object, function () {
 			let workspace=this.GetWorkspace();
 			let selected=workspace.GetActiveMedia();
 			if (selected instanceof Media.Image) await this.Download(await workspace.GetLegacyMedia(selected));
+			return {message: selected instanceof Media.Image?'Image downloaded.':'No image selected.'};
 		}
 		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
@@ -162,8 +167,16 @@ var ImageService=Function.extend(Object, function () {
 		};
 	};
 
-	_['public'].Generate=async function (prompt, image, ratio, index) {
+	_['public'].Generate=async function (options={}) {
 		let flow=Flow;
+		let {prompt, aspectRatio: ratio, useCurrentImage=false}=options;
+		if ('string'!==typeof prompt||!prompt.trim()) throw new Error('Provide an image prompt.');
+		let workspace=this.GetWorkspace();
+		let selected=useCurrentImage?workspace?.GetActiveMedia():null;
+		if (useCurrentImage&&!(selected instanceof Media.Image)) throw new Error('No current image is available.');
+		let image=selected?await workspace.GetLegacyMedia(selected):null;
+		let index=(workspace?.History.length||0)+1;
+		ratio??=workspace?.GetRatio()||'original';
 		let mediaId=image?.mediaId;
 		let aspectRatio='original'===ratio?(image?this.GetAspectRatio(await this.GetDimensions(image)):undefined):ratio;
 		if (image&&!mediaId) {
@@ -179,8 +192,8 @@ var ImageService=Function.extend(Object, function () {
 		result=await _(this).GetContent(result);
 		let dimensions=await this.GetDimensions(result);
 		return {
-			SourceMediaId: mediaId
-			, Image: {
+			message: 'Image generated and saved to Flow Assets ('+result.mediaId+').'
+			, image: {
 				id: 'ver_'+Date.now()
 				, base64: result.base64
 				, mimeType: result.mimeType
