@@ -59,7 +59,7 @@ var MessageList=Function.extend(Object, function () {
 		$this.m_lastConsulting=state.IsConsulting;
 		(list.querySelector('.ca-thinking')||list.lastElementChild)?.scrollIntoView({block: 'nearest'});
 	};
-	_['private'].m_lastMessages=null;
-	_['private'].m_lastNode=null;
-	_['private'].m_lastConsulting=null;
+	_['protected'].m_lastMessages=null;
+	_['protected'].m_lastNode=null;
+	_['protected'].m_lastConsulting=null;
 });

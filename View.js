@@ -101,10 +101,10 @@ var View=Function.extend(Object, function () {
 		node('history-count').SetText(media.History.length);
 		this.Prune(state);
 	};
-	_['private'].m_root=null;
-	_['private'].m_urls=null;
-	_['private'].m_mounted=null;
-	_['private'].m_messages=null;
-	_['private'].m_history=null;
-	_['private'].m_locale=null;
+	_['protected'].m_root=null;
+	_['protected'].m_urls=null;
+	_['protected'].m_mounted=null;
+	_['protected'].m_messages=null;
+	_['protected'].m_history=null;
+	_['protected'].m_locale=null;
 });

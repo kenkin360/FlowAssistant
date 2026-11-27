@@ -36,6 +36,6 @@ var HistoryList=Function.extend(Object, function () {
 		}
 		for (let button of area.children) button.classList.toggle('ca-selected', button.dataset.version===state.ActiveMedia?.Id);
 	};
-	_['private'].m_lastHistory=null;
-	_['private'].m_lastNode=null;
+	_['protected'].m_lastHistory=null;
+	_['protected'].m_lastNode=null;
 });

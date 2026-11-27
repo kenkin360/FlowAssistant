@@ -24,7 +24,7 @@ var App=Function.extend(React.Component, function () {
 		_(this).Load(this);
 	};
 
-	_['private'].Load=function (component) {
+	_['protected'].Load=function (component) {
 		let $this=_(component);
 		if ($this.m_loading) return;
 		$this.m_loading=true;
@@ -62,11 +62,11 @@ var App=Function.extend(React.Component, function () {
 				$this.m_error&&React.createElement('button', {type: 'button', onClick: $this.m_reload, style: {marginTop: 12, padding: '7px 14px'}}, chinese?'重新載入':'Reload')));
 	};
 
-	_['private'].m_agent=null;
-	_['private'].m_error=null;
-	_['private'].m_loading=false;
-	_['private'].m_progress=null;
-	_['private'].m_reload=null;
+	_['protected'].m_agent=null;
+	_['protected'].m_error=null;
+	_['protected'].m_loading=false;
+	_['protected'].m_progress=null;
+	_['protected'].m_reload=null;
 });
 
 export default App;

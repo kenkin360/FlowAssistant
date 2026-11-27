@@ -41,7 +41,7 @@ var ImageService=Function.extend(Object, function () {
 		};
 	};
 
-	_['private'].GetContent=async function (media) {
+	_['protected'].GetContent=async function (media) {
 		if ('string'===typeof media?.base64&&media.base64&&'string'===typeof media.mimeType&&media.mimeType) return media;
 		if (!media?.mediaId) throw new Error('The image has neither content nor a mediaId.');
 		let content=await Flow.media.getBase64({mediaId: media.mediaId});

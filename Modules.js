@@ -22,7 +22,7 @@ var Modules=Function.extend(Object, function () {
 		return Object.keys(modules).filter((name)=>typeof modules[name]?.Run==='function');
 	};
 	_['public'].HasVersion=function () { return _(this).m_versions.length>0; };
-	_['private'].RestoreGlobal=function (name, descriptor) {
+	_['protected'].RestoreGlobal=function (name, descriptor) {
 		if (descriptor) descriptor.Restore(globalThis, name);
 		else if (!delete globalThis[name]) globalThis[name]=undefined;
 	};
@@ -50,7 +50,7 @@ var Modules=Function.extend(Object, function () {
 		}
 		return $this.m_startup;
 	};
-	_['private'].Register=function (name, value, source, remote, track, previousGlobal) {
+	_['protected'].Register=function (name, value, source, remote, track, previousGlobal) {
 		if (value==null) throw new Error(name+' did not expose a module value.');
 		let runtime=this.GetRuntime();
 		if (undefined!==value.Run&&'function'!==typeof value.Run) throw new Error(name+' has an invalid Run method.');
@@ -86,8 +86,8 @@ var Modules=Function.extend(Object, function () {
 		let dynamic=_(this).m_dynamic;
 		return dynamic.size?[...dynamic].map(([name, time])=>`${name} (載入時間: ${time})`).join(', '):'(無)';
 	};
-	_['private'].m_sources=null;
-	_['private'].m_versions=null;
-	_['private'].m_dynamic=null;
-	_['private'].m_startup=null;
+	_['protected'].m_sources=null;
+	_['protected'].m_versions=null;
+	_['protected'].m_dynamic=null;
+	_['protected'].m_startup=null;
 });

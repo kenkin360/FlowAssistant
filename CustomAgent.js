@@ -26,17 +26,17 @@ var CustomAgent=Function.extend(React.Component, function () {
 		this.state={Focused: 'Chat'};
 	}
 
-	_['private'].Node=function (role) {
+	_['protected'].Node=function (role) {
 		return this.m_view.Node(role);
 	};
 
-	_['private'].SetValues=function (patch) {
+	_['protected'].SetValues=function (patch) {
 		this.m_state.Apply(patch);
 		this.Update();
 		this.Notify();
 	};
 
-	_['private'].AddMessage=function (sender, text, fields={}) {
+	_['protected'].AddMessage=function (sender, text, fields={}) {
 		let $this=_(this);
 		$this.SetValues({messages: [...$this.m_state.Messages, {
 			id: `${sender}_${Date.now()}_${Math.random()}`
@@ -60,7 +60,7 @@ var CustomAgent=Function.extend(React.Component, function () {
 		return _(this).m_state.ToSnapshot();
 	};
 
-	_['private'].ToLegacyMedia=async function (media) {
+	_['protected'].ToLegacyMedia=async function (media) {
 		if (!media) return null;
 		let state=this.m_state;
 		return {...media.toJSON(), base64: media.Data?await media.ToBase64():undefined, mediaId: state.MediaIds.get(media.Id), title: state.Labels.get(media.Id)};
@@ -188,7 +188,7 @@ var CustomAgent=Function.extend(React.Component, function () {
 	_['public'].ReadInstalledSource=function (args={}) { return _(this).m_modules.GetSources().ReadInstalledSource(args); };
 	_['public'].LoadModule=function (source, options={}) { return _(this).m_modules.LoadModule(source, options); };
 
-	_['private'].ResolveAction=function (name) {
+	_['protected'].ResolveAction=function (name) {
 		switch (name) {
 			case 'readCompiledSource': return (args)=>this.ReadCompiledSource(args);
 			case 'readRemoteSource': return (args)=>this.ReadRemoteSource(args);
@@ -202,7 +202,7 @@ var CustomAgent=Function.extend(React.Component, function () {
 		}
 	};
 
-	_['private'].ExecuteAction=async function (action, context) {
+	_['protected'].ExecuteAction=async function (action, context) {
 		if (!action?.arguments||'object'!==typeof action.arguments||Array.isArray(action.arguments)) throw new Error('Action arguments must be an object.');
 		let callback=_(this).ResolveAction(action.name);
 		if ('function'!==typeof callback) throw new Error('Runtime function not found: '+String(action.name));
@@ -265,7 +265,7 @@ var CustomAgent=Function.extend(React.Component, function () {
 		$this.m_ready=$this.Welcome();
 	};
 
-	_['private'].Update=function () {
+	_['protected'].Update=function () {
 		this.m_view.Update(this.m_state, (key)=>this.Text(key), (id)=>this.SelectVersion(id));
 	};
 
@@ -349,7 +349,7 @@ var CustomAgent=Function.extend(React.Component, function () {
 		$this.m_listeners.clear();
 	};
 
-	_['private'].ArrangeModals=function (name) {
+	_['protected'].ArrangeModals=function (name) {
 		let root=_(this).m_view.GetRoot();
 		if (!root) return;
 		let rect=root.getBoundingClientRect();
@@ -389,7 +389,7 @@ var CustomAgent=Function.extend(React.Component, function () {
 			}, React.createElement('div', {className: 'ca-modal-content', dangerouslySetInnerHTML: $this.m_templates[name]})))));
 	};
 
-	_['private'].Welcome=async function () {
+	_['protected'].Welcome=async function () {
 		let $this=_(this);
 		let app=$this;
 		let setupError='';
@@ -425,7 +425,7 @@ ${runtime.message}
 		}
 	};
 
-	_['private'].ReadResponse=function (value, allowAction=true) {
+	_['protected'].ReadResponse=function (value, allowAction=true) {
 		let raw=String(value??'');
 		let fallback=()=>{
 			let label='zh'===this.m_view.GetLocale()?'回應格式不正確，未執行任何動作。原始回應：\n':'Invalid response format; no action was performed. Original response:\n';
@@ -488,12 +488,12 @@ ${runtime.message}
 		return {...data, Type, Valid: true};
 	};
 
-	_['private'].RequestResponse=async function (prompt, options, allowAction=false) {
+	_['protected'].RequestResponse=async function (prompt, options, allowAction=false) {
 		let response=await Flow.generate.text(prompt, options);
 		return this.ReadResponse(response?.text, allowAction);
 	};
 
-	_['private'].Instruction=function (runtime) {
+	_['protected'].Instruction=function (runtime) {
 		let $this=_(this);
 		let dynamicList=$this.m_modules.DescribeDynamic();
 
@@ -512,7 +512,7 @@ generateVideo 可由使用者提出影片生成要求時執行，參數為 {prom
 `;
 	};
 
-	_['private'].DescribeMedia=function (media) {
+	_['protected'].DescribeMedia=function (media) {
 		if (!media) return null;
 		let state=this.m_state;
 		return {
@@ -526,7 +526,7 @@ generateVideo 可由使用者提出影片生成要求時執行，參數為 {prom
 		};
 	};
 
-	_['private'].HandleMessage=async function (message, turn) {
+	_['protected'].HandleMessage=async function (message, turn) {
 		let $this=_(this);
 		await $this.m_ready;
 		if (turn?.signal.aborted) return;
@@ -689,7 +689,7 @@ Summarize these results and answer the user in natural language.
 		});
 	};
 
-	_['private'].Report=async function (event, details={}, image) {
+	_['protected'].Report=async function (event, details={}, image) {
 		await _(this).m_ready;
 
 		let messages=this.GetState().messages.slice(-8)
@@ -710,13 +710,13 @@ Reply briefly to the user in the language of the current conversation.
 		this.Reply(response.reply, image?{includedMedia: image}:{});
 	};
 
-	_['private'].m_state=null;
-	_['private'].m_listeners=null;
-	_['private'].m_activeTurn=null;
-	_['private'].m_ready=null;
-	_['private'].m_view=null;
-	_['private'].m_modules=null;
-	_['private'].m_templates=null;
-	_['private'].m_modals=null;
-	_['private'].m_rootRef=null;
+	_['protected'].m_state=null;
+	_['protected'].m_listeners=null;
+	_['protected'].m_activeTurn=null;
+	_['protected'].m_ready=null;
+	_['protected'].m_view=null;
+	_['protected'].m_modules=null;
+	_['protected'].m_templates=null;
+	_['protected'].m_modals=null;
+	_['protected'].m_rootRef=null;
 });

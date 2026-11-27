@@ -7,7 +7,7 @@ var VideoService=Function.extend(Object, function () {
 	}
 	VideoService.ModelDisplayName='Omni 1.2 Flash';
 
-	_['private'].ResolveImageId=async function (image) {
+	_['protected'].ResolveImageId=async function (image) {
 		if ('string'===typeof image&&image) return image;
 		if ('string'===typeof image?.mediaId&&image.mediaId) return image.mediaId;
 		if ('string'!==typeof image?.base64||!image.base64||!/^image\//.test(image.mimeType)) {

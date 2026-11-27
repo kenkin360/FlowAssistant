@@ -9,7 +9,7 @@ var Upscale=Function.extend(Object, function () {
 		$this.m_weights=null;
 	}
 
-	_['private'].GetWebSR=async function () {
+	_['protected'].GetWebSR=async function () {
 		let $this=_(this);
 		if (!$this.m_websr) {
 			$this.m_websr=new Resource.Module('WebSR', 'https://esm.sh/gh/sb2702/websr/dist/websr.js?raw');
@@ -18,7 +18,7 @@ var Upscale=Function.extend(Object, function () {
 		catch (error) { $this.m_websr=null; throw error; }
 	};
 
-	_['private'].GetWeights=async function () {
+	_['protected'].GetWeights=async function () {
 		let $this=_(this);
 		if (!$this.m_weights) {
 			$this.m_weights=fetch('https://esm.sh/gh/sb2702/websr/weights/realesrgan/x4v3.bin?raw').then(async function(response) {
@@ -112,8 +112,8 @@ var Upscale=Function.extend(Object, function () {
 		finally { upscaler.destroy(); }
 	};
 
-	_['private'].m_websr=null;
-	_['private'].m_weights=null;
+	_['protected'].m_websr=null;
+	_['protected'].m_weights=null;
 	Upscale.Default=new Upscale();
 	Upscale.Run=Upscale.Default.Run.bind(Upscale.Default);
 	Upscale.Run.Description='Upscale the current image with Real-ESRGAN. Optional integer pixel arguments: width and height together for exact output dimensions. The full image is fitted without distortion; a differing aspect ratio leaves transparent margins.';

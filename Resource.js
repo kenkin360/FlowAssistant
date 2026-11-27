@@ -141,7 +141,7 @@ var Resource=Function.extend(Promise, function () {
 			$this.Begin('script', $this.m_checkHandler, true, true);
 		};
 
-		_['private'].Check=async function () {
+		_['protected'].Check=async function () {
 			let $this=_(this);
 			let state=$this.GetState();
 			if (state.Finished) {
@@ -172,7 +172,7 @@ var Resource=Function.extend(Promise, function () {
 			}
 		};
 
-		_['private'].m_checkHandler=null;
+		_['protected'].m_checkHandler=null;
 	});
 
 	var Picture=Function.extend(Resource, function () {
@@ -198,7 +198,7 @@ var Resource=Function.extend(Promise, function () {
 			}
 		};
 
-		_['private'].Complete=async function () {
+		_['protected'].Complete=async function () {
 			let $this=_(this);
 			let state=$this.GetState();
 			if (state.Finished) {
@@ -219,7 +219,7 @@ var Resource=Function.extend(Promise, function () {
 			$this.Finish(null, state.Element);
 		};
 
-		_['private'].m_loadHandler=null;
+		_['protected'].m_loadHandler=null;
 	});
 
 	Resource.Module=Module;

@@ -6,7 +6,7 @@ var DrawRectangle=Function.extend(Object, function () {
 		_['base'].apply(this, arguments);
 	}
 
-	_['private'].Validate=function (value) {
+	_['protected'].Validate=function (value) {
 		if (!value||typeof value!=='object') throw new Error('Rectangle arguments are missing.');
 		let fraction=(number)=>typeof number==='number'&&Number.isFinite(number)&&number>=0&&number<=1;
 		let color=(text)=>typeof text==='string'&&/^#[\da-fA-F]{6}$/.test(text);

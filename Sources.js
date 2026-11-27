@@ -18,7 +18,7 @@ var Sources=Function.extend(Object, function () {
 		if (entry) _(this).m_installed.set(name, entry);
 		else _(this).m_installed.delete(name);
 	};
-	_['private'].Parse=function (url) {
+	_['protected'].Parse=function (url) {
 		let prefix='data:text/javascript;base64,';
 		if (!url?.startsWith(prefix)) throw new Error('The bundled source is unavailable from import.meta.url.');
 		let bytes=Uint8Array.from(atob(url.slice(prefix.length)), (char)=>char.charCodeAt(0));
@@ -60,8 +60,8 @@ var Sources=Function.extend(Object, function () {
 		if (!response.ok) throw new Error(`Failed to read ${args.name}: HTTP ${response.status}`);
 		return {message: `${args.name}:\n${await response.text()}`};
 	};
-	_['private'].m_entries=null;
-	_['private'].m_compiled=null;
-	_['private'].m_error=null;
-	_['private'].m_installed=null;
+	_['protected'].m_entries=null;
+	_['protected'].m_compiled=null;
+	_['protected'].m_error=null;
+	_['protected'].m_installed=null;
 });
