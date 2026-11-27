@@ -12,7 +12,7 @@ var AppActions=Function.extend(Object, function () {
 	_['public'].GetMedia=function () { return _(this).m_mediaOperations.GetMedia(); };
 	_['public'].NormalizeAttachment=function (value) { return this.GetMedia().ToMedia(value); };
 	_['public'].DescribeActions=function () {
-		return 'readCompiledSource, readRemoteSource, readInstalledSource, inspectRuntime, loadModule, rollback, resetConversation, generateVideo, '+this.GetNames().join(', ');
+		return [...ActionExecutor.BuiltinActions, 'resetConversation', ...this.GetNames()].join(', ');
 	};
 	_['public'].InspectRuntime=function (args={}) {
 		let runtime=this.GetRuntime();

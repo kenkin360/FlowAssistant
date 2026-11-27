@@ -7,13 +7,16 @@ var ActionExecutor=Function.extend(Object, function () {
 		_(this).m_mediaOperations=mediaOperations;
 		_(this).m_inspect=inspect;
 	}
+	ActionExecutor.BuiltinActions=['readCompiledSource', 'readRemoteSource', 'readInstalledSource', 'inspectRuntime', 'loadModule', 'rollback', 'generateVideo'];
 	_['public'].GetMedia=function () { return _(this).m_mediaOperations.GetMedia(); };
 	_['public'].RunAction=async function (action, track=true, source, Type) {
 		let $this=_(this);
 		await $this.m_modules.GetStartup();
 		let media=$this.GetMedia();
-		let image=media.GetActiveMedia() instanceof Media.Image?await $this.m_mediaOperations.ToLegacyMedia(media.GetActiveMedia()):null;
-		let artifact=media.GetCurrentMedia()===media.GetActiveMedia()&&image?image:await $this.m_mediaOperations.ToLegacyMedia(media.GetCurrentMedia());
+		let builtIn=ActionExecutor.BuiltinActions.includes(action.name);
+		let needsImage=!builtIn||action.name==='generateVideo'&&(action.arguments?.useCurrentImageAsFirstFrame||action.arguments?.useCurrentImageAsReference);
+		let image=needsImage&&media.GetActiveMedia() instanceof Media.Image?await $this.m_mediaOperations.ToLegacyMedia(media.GetActiveMedia()):null;
+		let artifact=!builtIn?(media.GetCurrentMedia()===media.GetActiveMedia()&&image?image:await $this.m_mediaOperations.ToLegacyMedia(media.GetCurrentMedia())):null;
 		let result=await $this.ExecuteAction(action, {image, artifact, track, source, Type});
 		if (result.artifact) {
 			let output=media.ToMedia(result.artifact);
