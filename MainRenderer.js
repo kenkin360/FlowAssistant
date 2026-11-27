@@ -42,7 +42,6 @@ var MainRenderer=Function.extend(React.Component, function () {
 
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
-		$this.m_agent.GetActions().GetRuntime().UI=this;
 		$this.m_unsubscribe=$this.m_agent.Subscribe(()=>$this.Update());
 		let root=$this.m_view.GetRoot();
 		root.onclick=(event)=>{
@@ -82,8 +81,6 @@ var MainRenderer=Function.extend(React.Component, function () {
 		_(this).m_agent.Stop();
 		let root=$this.m_view.GetRoot();
 		if (root) root.onclick=root.onkeydown=null;
-		let runtime=_(this).m_agent.GetActions().GetRuntime();
-		if (runtime.UI===this) delete runtime.UI;
 		for (let name of this.Mounted()) this.Unmount(name);
 		$this.m_view.Dispose();
 		$this.m_unsubscribe?.();
