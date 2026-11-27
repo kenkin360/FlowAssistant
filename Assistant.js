@@ -55,6 +55,7 @@ var Assistant=Function.extend(Object, function () {
 			||null!==response.MethodName&&(false===allowMethod||'string'!==typeof response.MethodName||!response.MethodName.trim()
 				||!response.Arguments||'object'!==typeof response.Arguments||Array.isArray(response.Arguments))
 			||null===response.MethodName&&null!==response.Arguments
+			||response.MethodName&&!!response.reply.trim()
 			||!response.reply.trim()&&!response.MethodName) return fallback();
 		return {...response, Valid: true};
 	};
@@ -65,10 +66,10 @@ var Assistant=Function.extend(Object, function () {
 	_['public'].GetInstruction=function (runtime, methods) {
 		return '你是 Assistant。請依對話另一方本輪使用的語言回答，並根據實際結果處理要求。\n'
 			+'目前能力：'+runtime+'\n可用方法：'+methods+'\n'
-			+'只輸出單一標準 JSON 物件。一般回覆 {"reply":"給對話另一方看的文字"}；'
+			+'回覆格式為單一標準 JSON 物件。一般回覆 {"reply":"給對話另一方看的文字"}；'
 			+'需要執行方法時回覆 {"reply":"","MethodName":"類型.方法","Arguments":{}}。'
-			+'MethodName 必須是現有類型與其方法的完整名稱；執行後會把實際結果交還給你。'
-			+'在取得結果之前不得聲稱已完成。收到結果後決定下一個方法或回覆。不要加入 Markdown 或額外文字。';
+			+'MethodName 使用現有類型與其方法的完整名稱；執行後會把實際結果交還給你。'
+			+'收到方法結果後，根據實際結果選擇下一個方法，或在 reply 中陳述已完成的事項。';
 	};
 	_['public'].GetRequest=async function (message, completed) {
 		let methods=_(this).m_methods;
@@ -123,7 +124,7 @@ var Assistant=Function.extend(Object, function () {
 		}
 		if (turn.signal.aborted) return;
 		let request=await this.GetRequest(message, completed);
-		let prompt=request.Prompt+'\n請根據以上已發生的結果直接回答，不要再要求執行方法。';
+		let prompt=request.Prompt+'\n請根據以上已發生的結果，以 {"reply":"根據結果給對話另一方的回答"} 結束本輪。';
 		let final=await this.RequestResponse(prompt, request.Options);
 		if (turn.signal.aborted) return;
 		let fields=$this.m_methods.CompleteResponse(final.reply, responses, lastResult);
@@ -134,7 +135,7 @@ var Assistant=Function.extend(Object, function () {
 			let $this=_(this);
 			await $this.m_ready;
 			let recent=this.GetMessages().slice(-8).map((entry)=>entry.Sender+': '+entry.Text).join('\n');
-			let prompt='最近對話：\n'+recent+'\n事件：'+event+'\n實際結果：'+JSON.stringify(details)+'\n請依目前對話語言簡短回答。';
+			let prompt='最近對話：\n'+recent+'\n事件：'+event+'\n實際結果：'+JSON.stringify(details)+'\n請依目前對話語言，根據實際結果回答。';
 			let response=await this.RequestResponse(prompt, {systemInstruction: this.GetInstruction('', '')});
 			this.Reply(response.reply, attachment?{attachment: $this.m_methods.NormalizeAttachment(attachment)}:{});
 		}

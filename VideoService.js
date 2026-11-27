@@ -7,7 +7,7 @@ var VideoService=Function.extend(Object, function () {
 	}
 	VideoService.ModelDisplayName='Omni 1.2 Flash';
 	_['public'].GetInstruction=function () {
-		return '產生影片時使用 MethodName: VideoService.Generate，Arguments 為 {prompt,aspectRatio,durationSeconds,resolution}；aspectRatio 為 16:9 或 9:16，durationSeconds 為 3 至 15，resolution 為 720p 或 360p。可選 useCurrentImageAsFirstFrame: true 作為首幀，或 useCurrentImageAsReference: true 作為參考；也可傳 firstFrameImageMediaId、referenceImageMediaIds，或 sourceVideoMediaId 作為影片編輯來源。首幀不得與參考圖或來源影片同時使用。完成後影片自動存入 Flow Assets。';
+		return '產生影片時使用 MethodName: VideoService.Generate，Arguments 為 {prompt,aspectRatio,durationSeconds,resolution}；aspectRatio 為 16:9 或 9:16，durationSeconds 為 3 至 15，resolution 為 720p 或 360p。可選 useCurrentImageAsFirstFrame: true 作為首幀，或 useCurrentImageAsReference: true 作為參考；也可傳 firstFrameImageMediaId、referenceImageMediaIds，或 sourceVideoMediaId 作為影片編輯來源。首幀模式範例：{"prompt":"...","useCurrentImageAsFirstFrame":true}。完成後影片自動存入 Flow Assets。';
 	};
 	_['public'].DownloadCurrent=async function (workspace) {
 		let selected=workspace.GetActiveMedia();
