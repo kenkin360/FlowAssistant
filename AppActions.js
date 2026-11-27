@@ -43,7 +43,6 @@ var AppActions=Function.extend(Object, function () {
 	};
 	_['public'].RunRequestedAction=async function (action, response) {
 		let result=await _(this).m_executor.RunAction(action, true, response.source, response.Type);
-		if ('loadModule'===action.name) _(this).m_modules.RecordDynamic(action.arguments?.name||'CustomModule');
 		return result;
 	};
 	_['public'].CompleteResponse=function (answer, responses, artifact) { return _(this).m_mediaOperations.ApplyResponse(responses, artifact); };
