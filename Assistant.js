@@ -20,15 +20,15 @@ var Assistant=Function.extend(Object, function () {
 		listener();
 		return ()=>$this.m_listeners.delete(listener);
 	};
-	_['public'].Notify=function () {
+	_['public'].Notify=function (details) {
 		for (let listener of _(this).m_listeners) {
-			try { listener(); }
+			try { listener(details); }
 			catch (error) { console.error('Subscriber failed:', error); }
 		}
 	};
 	_['public'].Reply=function (text, fields={}) {
 		_(this).m_conversation.Add('assistant', text, fields);
-		this.Notify();
+		this.Notify(fields);
 	};
 	_['public'].ReportError=function (error) {
 		_(this).m_conversation.Add('system', error?.message||String(error));

@@ -75,11 +75,15 @@ var Methods=Function.extend(Object, function () {
 		return {message: methodName+'：'+String('string'===typeof value?value:JSON.stringify(value)??'已完成').slice(0,12000)};
 	};
 	_['public'].CompleteResponse=function (reply, responses, result) {
-		this.ImageService.ApplySuggestions(responses);
+		let suggestions={};
+		for (let response of responses) {
+			if ('string'===typeof response.suggestedPrompt) suggestions.suggestedPrompt=response.suggestedPrompt;
+			if ('string'===typeof response.aspectRatio) suggestions.aspectRatio=response.aspectRatio;
+		}
 		let workspace=this.ImageService.GetWorkspace();
 		let current=result?.artifact||workspace.GetCurrentMedia();
 		let attachment=result?.artifact instanceof Media.Image||result?.artifact instanceof Media.Video?result.artifact:current instanceof Media.Video?current:null;
-		return {attachment};
+		return {attachment, ...suggestions};
 	};
 	_['public'].NormalizeAttachment=function (value) { return this.ImageService.GetWorkspace().ToMedia(value); };
 	_['public'].DescribeResult=function (result) {

@@ -40,14 +40,14 @@ var MainRenderer=Function.extend(React.Component, function () {
 
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
-		$this.m_unsubscribe=$this.m_assistant.Subscribe(()=>$this.Update());
+		$this.m_unsubscribe=$this.m_assistant.Subscribe((details)=>{ $this.m_view.ApplySuggestions(details); $this.Update(); });
 		let root=$this.m_view.GetRoot();
 		root.onclick=(event)=>{
 			let target=event.target.closest?.('[data-action],[data-ratio]');
 			if (!target||!root.contains(target)) return;
 			let imageService=$this.m_assistant.GetMethods().ImageService;
 			let workspace=imageService.GetWorkspace();
-			if (target.dataset.ratio) { workspace.SetRatio(target.dataset.ratio); return; }
+			if (target.dataset.ratio) { $this.m_view.SetRatio(target.dataset.ratio); return; }
 			switch (target.dataset.action) {
 				case 'media-window': new HtmlNode($this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
 				case 'chat-window': new HtmlNode($this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
@@ -58,10 +58,10 @@ var MainRenderer=Function.extend(React.Component, function () {
 					if (workspace.GetActiveMedia() instanceof Media.Video) $this.m_assistant.GetMethods().VideoService.DownloadCurrent(workspace).catch((error)=>$this.m_assistant.ReportError(error));
 					else imageService.DownloadCurrent();
 					break;
-				case 'generate': imageService.GenerateCurrent(); break;
+				case 'generate': imageService.GenerateCurrent({prompt: $this.m_view.GetPrompt(), aspectRatio: $this.m_view.GetRatio()}); break;
 				case 'info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'flex'); break;
 				case 'close-info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'none'); break;
-				case 'copy-prompt': navigator.clipboard.writeText(workspace.GetPrompt()||''); break;
+				case 'copy-prompt': navigator.clipboard.writeText($this.m_view.GetPrompt()); break;
 			}
 		};
 		root.onkeydown=(event)=>{

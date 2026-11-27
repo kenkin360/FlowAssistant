@@ -31,6 +31,24 @@ var View=Function.extend(Object, function () {
 			_(this).m_urls.delete(media);
 		}
 	};
+	_['public'].GetPrompt=function () { return this.Node('pending-prompt')?.textContent||''; };
+	_['public'].SetPrompt=function (prompt) {
+		let value=String(prompt??'');
+		new HtmlNode(this.Node('pending-prompt')).SetText(value);
+		new HtmlNode(this.Node('pending')).SetStyle('display', value?'block':'none');
+	};
+	_['public'].GetRatio=function () {
+		return this.Node('ratios')?.querySelector('.ca-selected')?.dataset.ratio||'original';
+	};
+	_['public'].SetRatio=function (ratio) {
+		let buttons=this.Node('ratios')?.querySelectorAll('[data-ratio]')||[];
+		if (![...buttons].some((button)=>button.dataset.ratio===ratio)) return;
+		for (let button of buttons) button.classList.toggle('ca-selected', button.dataset.ratio===ratio);
+	};
+	_['public'].ApplySuggestions=function (suggestions) {
+		if ('string'===typeof suggestions?.suggestedPrompt) this.SetPrompt(suggestions.suggestedPrompt);
+		if ('string'===typeof suggestions?.aspectRatio) this.SetRatio(suggestions.aspectRatio);
+	};
 	_['public'].GetLocale=function () {
 		let locale=navigator.language||'en';
 		return /^en(?:-|$)/i.test(locale)?'en':locale;
@@ -90,12 +108,9 @@ var View=Function.extend(Object, function () {
 		node('generating').SetStyle('display', generating?'flex':'none');
 		this.Localize(text);
 		new HtmlNode(root.querySelector('[data-action="send"]')).SetText(consulting?text('stop'):text('send'));
-		node('pending').SetStyle('display', !!media.GetPrompt()?'block':'none');
 		node('pending-count').SetText(text('promptDraft'));
 		node('pending-list').SetStyle('display', 'none');
-		node('pending-prompt').SetText(media.GetPrompt()||'');
-		let ratios=node('ratios').GetElement();
-		for (let button of ratios?.querySelectorAll('[data-ratio]')||[]) button.classList.toggle('ca-selected', button.dataset.ratio===media.GetRatio());
+		if (!this.Node('ratios')?.querySelector('.ca-selected')) this.SetRatio('original');
 		_(this).m_messages.Update(node('message-list').GetElement(), messages, consulting, text, (value)=>this.Url(value));
 		_(this).m_history.Update(node('history').GetElement(), media, select, (value)=>this.Url(value));
 		node('history-count').SetText(media.History.length);

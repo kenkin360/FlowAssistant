@@ -19,20 +19,13 @@ var ImageService=Function.extend(Object, function () {
 		let selected=workspace.GetActiveMedia();
 		let artifact=workspace.GetCurrentMedia();
 		let info=selected instanceof Media.Image?await this.GetDimensions(await workspace.GetLegacyMedia(selected)):null;
-		let text=selected||artifact?'目前影像：'+(info?info.width+' × '+info.height+' ('+selected.MimeType+')':'無')+'；目前產物：'+JSON.stringify(workspace.Describe(artifact))+'；選定比例：'+workspace.GetRatio():'';
+		let text=selected||artifact?'目前影像：'+(info?info.width+' × '+info.height+' ('+selected.MimeType+')':'無')+'；目前產物：'+JSON.stringify(workspace.Describe(artifact)):'';
 		let images=[];
 		if (selected instanceof Media.Image) {
 			let image=await workspace.GetLegacyMedia(selected);
 			images=[{base64: image.base64, mimeType: image.mimeType}];
 		}
 		return {Text: text, Images: images};
-	};
-	_['public'].ApplySuggestions=function (responses) {
-		let workspace=this.GetWorkspace();
-		for (let response of responses) {
-			if ('string'===typeof response.suggestedPrompt) workspace.SetPrompt(response.suggestedPrompt);
-			if (['original', '1:1', '16:9', '9:16', '4:3', '3:4'].includes(response.aspectRatio)) workspace.SetRatio(response.aspectRatio);
-		}
 	};
 	_['public'].SelectCurrent=async function () {
 		try {
@@ -54,16 +47,16 @@ var ImageService=Function.extend(Object, function () {
 		}
 		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
-	_['public'].GenerateCurrent=async function (prompt) {
+	_['public'].GenerateCurrent=async function (options={}) {
 		let $this=_(this);
 		let workspace=this.GetWorkspace();
-		let text=String(prompt||workspace.GetPrompt()).trim();
+		let text=String(options.prompt??'').trim();
 		if (!text||$this.m_generating) return;
 		$this.m_generating=true;
 		workspace.NotifyChanged();
 		try {
 			let selected=workspace.GetActiveMedia();
-			let result=await this.Generate({prompt: text, aspectRatio: workspace.GetRatio(), useCurrentImage: selected instanceof Media.Image});
+			let result=await this.Generate({prompt: text, aspectRatio: options.aspectRatio, useCurrentImage: selected instanceof Media.Image});
 			let image=result.image;
 			workspace.Add(image);
 			await $this.m_notify('Image generation completed', {Title: image.title, Prompt: text, Width: image.width, Height: image.height}, image);
@@ -176,7 +169,7 @@ var ImageService=Function.extend(Object, function () {
 		if (useCurrentImage&&!(selected instanceof Media.Image)) throw new Error('No current image is available.');
 		let image=selected?await workspace.GetLegacyMedia(selected):null;
 		let index=(workspace?.History.length||0)+1;
-		ratio??=workspace?.GetRatio()||'original';
+		ratio??='original';
 		let mediaId=image?.mediaId;
 		let aspectRatio='original'===ratio?(image?this.GetAspectRatio(await this.GetDimensions(image)):undefined):ratio;
 		if (image&&!mediaId) {
