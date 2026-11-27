@@ -63,9 +63,9 @@ var Assistant=Function.extend(Object, function () {
 		return this.ReadResponse(response?.text, allowMethod);
 	};
 	_['public'].GetInstruction=function (runtime, methods) {
-		return '你是 Assistant。請依使用者本輪使用的語言回答，並根據實際結果處理要求。\n'
+		return '你是 Assistant。請依對話另一方本輪使用的語言回答，並根據實際結果處理要求。\n'
 			+'目前能力：'+runtime+'\n可用方法：'+methods+'\n'
-			+'只輸出單一標準 JSON 物件。一般回覆 {"reply":"給使用者看的文字"}；'
+			+'只輸出單一標準 JSON 物件。一般回覆 {"reply":"給對話另一方看的文字"}；'
 			+'需要執行方法時回覆 {"reply":"","MethodName":"類型.方法","Arguments":{}}。'
 			+'MethodName 必須是現有類型與其方法的完整名稱；執行後會把實際結果交還給你。'
 			+'在取得結果之前不得聲稱已完成。收到結果後決定下一個方法或回覆。不要加入 Markdown 或額外文字。';
@@ -129,25 +129,12 @@ var Assistant=Function.extend(Object, function () {
 		let fields=$this.m_methods.CompleteResponse(final.reply, responses, lastResult);
 		this.Reply(final.reply, fields);
 	};
-	_['public'].Welcome=async function (language) {
-		let $this=_(this);
-		let setupError='';
-		try { await $this.m_methods.Modules.Initialize(); }
-		catch (error) { setupError=error?.message||String(error); }
-		try {
-			let runtime=$this.m_methods.Modules.InspectRuntime({}).message;
-			let prompt='你是否了解自己的能力？請依照實際檢查結果簡短歡迎使用者。啟動結果：'+(setupError||'success')+'。瀏覽器語系：'+(language||'en');
-			let response=await this.RequestResponse(prompt, {systemInstruction: this.GetInstruction(runtime, $this.m_methods.GetInstruction())});
-			if (!this.GetMessages().length) this.Reply(response.reply);
-		}
-		catch (error) { this.ReportError(error); }
-	};
 	_['public'].NotifyAssistant=async function (event, details={}, attachment) {
 		try {
 			let $this=_(this);
 			await $this.m_ready;
 			let recent=this.GetMessages().slice(-8).map((entry)=>entry.Sender+': '+entry.Text).join('\n');
-			let prompt='最近對話：\n'+recent+'\n事件：'+event+'\n實際結果：'+JSON.stringify(details)+'\n請依使用者語言簡短回答。';
+			let prompt='最近對話：\n'+recent+'\n事件：'+event+'\n實際結果：'+JSON.stringify(details)+'\n請依目前對話語言簡短回答。';
 			let response=await this.RequestResponse(prompt, {systemInstruction: this.GetInstruction('', '')});
 			this.Reply(response.reply, attachment?{attachment: $this.m_methods.NormalizeAttachment(attachment)}:{});
 		}

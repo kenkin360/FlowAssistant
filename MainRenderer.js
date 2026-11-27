@@ -77,7 +77,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 			this.forceUpdate();
 			this.Update();
 		});
-		$this.m_assistant.SetReady($this.m_assistant.Welcome(navigator.language));
+		$this.m_assistant.SetReady(new ConversationOpening($this.m_assistant).Start(navigator.language));
 	};
 
 	_['protected'].Update=function () {

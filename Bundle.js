@@ -39,6 +39,7 @@ var Bundle=Function.extend(Function, function () {
 		['MainRenderer', Bundle.SourceUrl('MainRenderer.js')]
 		, ['DisplayText', Bundle.SourceUrl('DisplayText.js')]
 		, ['Assistant', Bundle.SourceUrl('Assistant.js')]
+		, ['ConversationOpening', Bundle.SourceUrl('ConversationOpening.js')]
 		, ['Methods', Bundle.SourceUrl('Methods.js')]
 		, ['Conversation', Bundle.SourceUrl('models/Conversation.js')]
 		, ['HtmlNode', 'https://esm.sh/gh/kenkin360/FlowerX/HtmlNode.js?raw']
