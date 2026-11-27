@@ -12,13 +12,23 @@ var Modules=Function.extend(Object, function () {
 	_['public'].GetVersionCount=function () { return _(this).m_versions.length; };
 	_['public'].GetStartup=function () { return _(this).m_startup; };
 	_['public'].GetRuntime=function () {
-		let runtime=globalThis.AppRuntime||=Object.create(null);
+		let runtime=globalThis.ModuleRuntime||=Object.create(null);
 		runtime.Modules||=Object.create(null);
 		return runtime;
 	};
 	_['public'].GetNames=function () {
 		let modules=this.GetRuntime().Modules;
 		return Object.keys(modules).filter((name)=>typeof modules[name]?.Run==='function');
+	};
+	_['public'].InspectRuntime=function (args={}) {
+		let runtime=this.GetRuntime();
+		if ('string'===typeof args.name) {
+			let method=runtime.Modules[args.name]?.Run;
+			if ('function'!==typeof method) throw new Error('Method not found: '+args.name+'.Run');
+			return {message: args.name+'.Run：'+(method.Description||String(method))};
+		}
+		let names=this.GetNames();
+		return {message: '可呼叫模組：'+(names.map((name)=>name+'.Run'+(runtime.Modules[name].Run.Description?'：'+runtime.Modules[name].Run.Description:'')).join('；')||'無')+'。編譯原碼：'+JSON.stringify(_(this).m_sources.CompiledNames())+'。可回復的模組安裝：'+this.GetVersionCount()+'。'};
 	};
 	_['public'].HasVersion=function () { return _(this).m_versions.length>0; };
 	_['protected'].RestoreGlobal=function (name, descriptor) {
@@ -40,8 +50,8 @@ var Modules=Function.extend(Object, function () {
 		let $this=_(this);
 		if (!$this.m_startup) {
 			$this.m_startup=(async ()=>{
-				await this.LoadModule(Bundle.CustomAgent('extensions/DrawRectangle.js'), {name: 'DrawRectangle', Type: Resource.Module, track: false});
-				await this.LoadModule(Bundle.CustomAgent('extensions/Upscale.js'), {name: 'Upscale', Type: Resource.Module, track: false});
+				await this.LoadModule(Bundle.SourceUrl('extensions/DrawRectangle.js'), {name: 'DrawRectangle', Type: Resource.Module, track: false});
+				await this.LoadModule(Bundle.SourceUrl('extensions/Upscale.js'), {name: 'Upscale', Type: Resource.Module, track: false});
 			})().catch((error)=>{
 				$this.m_startup=null;
 				throw error;
@@ -77,9 +87,21 @@ var Modules=Function.extend(Object, function () {
 			throw error;
 		}
 	};
+	_['public'].Install=function (args={}) {
+		let type='javascript'===args.sourceType||'js'===args.sourceType?Resource.Inline:['text', 'url'].includes(args.sourceType)?Resource.Module:null;
+		if (!type) throw new Error('sourceType must be javascript, js, text, or url.');
+		return this.LoadModule(args.source, {name: args.name, Type: type, readyMember: args.readyMember});
+	};
 	_['public'].DescribeDynamic=function () {
 		let names=[...new Set(_(this).m_versions.map((installation)=>installation.Name))];
 		return names.length?names.join(', '):'(無)';
+	};
+	_['public'].GetInstruction=function () {
+		return '原碼查閱：Sources.ReadCompiledSource、Sources.ReadRemoteSource、Sources.ReadInstalledSource；不給 Arguments 可列出可用來源。'
+			+'環境資訊：Modules.InspectRuntime。安裝模組：Modules.Install，Arguments 為 {name,source,sourceType}，sourceType 使用 javascript、js、text 或 url。'
+			+'撤銷安裝：Modules.Rollback。清空對話：Conversation.Clear。'
+			+'已安裝模組以模組名稱加 .Run 呼叫，例如 DrawRectangle.Run。編寫模組時使用頂層 var 與 Function.extend(Base, factory)，靜態 Run 接收 Arguments 與執行環境。'
+			+'本輪載入模組：'+this.DescribeDynamic()+'。';
 	};
 	_['protected'].m_sources=null;
 	_['protected'].m_versions=null;

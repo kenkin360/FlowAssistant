@@ -9,7 +9,7 @@ var Sources=Function.extend(Object, function () {
 	}
 	_['public'].GetCompiled=function () { return _(this).Parse(_(this).m_hostSourceUrl); };
 	_['public'].CompiledNames=function () { try { return [...this.GetCompiled().keys()]; } catch (error) { return []; } };
-	_['public'].GetEntries=function () { return [...Bundle.Config, ['DrawRectangle', Bundle.CustomAgent('extensions/DrawRectangle.js')], ['Upscale', Bundle.CustomAgent('extensions/Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember)); };
+	_['public'].GetEntries=function () { return [...Bundle.Config, ['DrawRectangle', Bundle.SourceUrl('extensions/DrawRectangle.js')], ['Upscale', Bundle.SourceUrl('extensions/Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember)); };
 	_['public'].InstalledNames=function () { return [..._(this).m_installed.keys()]; };
 	_['public'].GetInstalled=function (name) { return _(this).m_installed.get(name); };
 	_['public'].SetInstalled=function (name, entry) {

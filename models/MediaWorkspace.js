@@ -4,8 +4,8 @@ var MediaWorkspace=Function.extend(Object, function () {
 	function MediaWorkspace() {
 		_['base'].apply(this, arguments);
 		this.History=[];
-		this.IsGenerating=false;
-		this.Draft=new GenerationDraft();
+		this.Prompt='';
+		this.Ratio='original';
 		_(this).m_selectedId=null;
 		_(this).m_artifact=null;
 	}
@@ -15,8 +15,8 @@ var MediaWorkspace=Function.extend(Object, function () {
 	_['public'].GetCurrentMedia=function () {
 		return _(this).m_artifact||this.GetActiveMedia()||this.History[0]||null;
 	};
-	_['public'].GetPrompt=function () { return this.Draft.Prompt; };
-	_['public'].GetRatio=function () { return this.Draft.Ratio; };
+	_['public'].GetPrompt=function () { return this.Prompt; };
+	_['public'].GetRatio=function () { return this.Ratio; };
 	_['public'].ToMedia=function (value) {
 		if (!value||value instanceof Media) return value;
 		return this.History.find((entry)=>entry.Id===value.id)||Media.From(value);
@@ -38,13 +38,12 @@ var MediaWorkspace=Function.extend(Object, function () {
 			let current=resolve(patch.currentMedia);
 			_(this).m_artifact=current&&!this.History.includes(current)?current:null;
 		}
-		if ('isGenerating' in patch) this.IsGenerating=patch.isGenerating;
-		if ('selectedRatio' in patch) this.Draft.Ratio=patch.selectedRatio;
-		if ('generationPrompt' in patch) this.Draft.Prompt=patch.generationPrompt;
+		if ('selectedRatio' in patch) this.Ratio=patch.selectedRatio;
+		if ('generationPrompt' in patch) this.Prompt=patch.generationPrompt;
 	};
 	_['public'].History=null;
-	_['public'].IsGenerating=false;
-	_['public'].Draft=null;
+	_['public'].Prompt=null;
+	_['public'].Ratio=null;
 	_['protected'].m_selectedId=null;
 	_['protected'].m_artifact=null;
 });

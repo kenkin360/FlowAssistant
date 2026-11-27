@@ -31,37 +31,34 @@ var Bundle=Function.extend(Function, function () {
 		return loaded;
 	};
 
-	Bundle.CustomAgent=function (path) {
+	Bundle.SourceUrl=function (path) {
 		return `https://esm.sh/gh/kenkin360/FlowAssistant/${path}?raw`;
 	};
 
 	Bundle.Config=[
-		['MainRenderer', Bundle.CustomAgent('MainRenderer.js')]
-		, ['DisplayText', Bundle.CustomAgent('DisplayText.js')]
-		, ['Agent', Bundle.CustomAgent('Agent.js')]
-		, ['AppActions', Bundle.CustomAgent('AppActions.js')]
-		, ['ActionExecutor', Bundle.CustomAgent('ActionExecutor.js')]
-		, ['Assistant', Bundle.CustomAgent('Assistant.js')]
-		, ['Conversation', Bundle.CustomAgent('models/Conversation.js')]
+		['MainRenderer', Bundle.SourceUrl('MainRenderer.js')]
+		, ['DisplayText', Bundle.SourceUrl('DisplayText.js')]
+		, ['Assistant', Bundle.SourceUrl('Assistant.js')]
+		, ['Methods', Bundle.SourceUrl('Methods.js')]
+		, ['Conversation', Bundle.SourceUrl('models/Conversation.js')]
 		, ['HtmlNode', 'https://esm.sh/gh/kenkin360/FlowerX/HtmlNode.js?raw']
 		, ['Modal', 'https://esm.sh/gh/kenkin360/FlowerX/Modal.js?raw']
-		, ['ImageService', Bundle.CustomAgent('ImageService.js')]
-		, ['VideoService', Bundle.CustomAgent('VideoService.js')]
-		, ['MediaOperations', Bundle.CustomAgent('MediaOperations.js')]
-		, ['MediaWorkspace', Bundle.CustomAgent('models/MediaWorkspace.js')]
-		, ['GenerationDraft', Bundle.CustomAgent('models/GenerationDraft.js')]
-		, ['Message', Bundle.CustomAgent('models/Message.js')]
-						, ['Media', Bundle.CustomAgent('models/Media.js')]
-		, ['View', Bundle.CustomAgent('View.js')]
-		, ['MessageList', Bundle.CustomAgent('MessageList.js')]
-		, ['HistoryList', Bundle.CustomAgent('HistoryList.js')]
-		, ['Modules', Bundle.CustomAgent('Modules.js')]
-		, ['Binding', Bundle.CustomAgent('Binding.js')]
-		, ['Installation', Bundle.CustomAgent('models/Installation.js')]
-		, ['Sources', Bundle.CustomAgent('Sources.js')]
-		, ['Source', Bundle.CustomAgent('models/Source.js')]
+		, ['ImageService', Bundle.SourceUrl('ImageService.js')]
+		, ['VideoService', Bundle.SourceUrl('VideoService.js')]
+		, ['MediaOperations', Bundle.SourceUrl('MediaOperations.js')]
+		, ['MediaWorkspace', Bundle.SourceUrl('models/MediaWorkspace.js')]
+		, ['Message', Bundle.SourceUrl('models/Message.js')]
+		, ['Media', Bundle.SourceUrl('models/Media.js')]
+		, ['View', Bundle.SourceUrl('View.js')]
+		, ['MessageList', Bundle.SourceUrl('MessageList.js')]
+		, ['HistoryList', Bundle.SourceUrl('HistoryList.js')]
+		, ['Modules', Bundle.SourceUrl('Modules.js')]
+		, ['Binding', Bundle.SourceUrl('Binding.js')]
+		, ['Installation', Bundle.SourceUrl('models/Installation.js')]
+		, ['Sources', Bundle.SourceUrl('Sources.js')]
+		, ['Source', Bundle.SourceUrl('models/Source.js')]
 		, ['cv', 'https://esm.sh/gh/TechStark/opencv-js/dist/opencv.js?raw', 'Mat']
-		, ['agentTemplate', Bundle.CustomAgent('views/agent.html.js')]
+		, ['agentTemplate', Bundle.SourceUrl('views/agent.html.js')]
 	];
 });
 

@@ -25,7 +25,7 @@ var ImageService=Function.extend(Object, function () {
 		return width/a+':'+height/a;
 	};
 
-	_['public'].ReadActionResult=async function (value, image, actionName) {
+	_['public'].ReadMethodResult=async function (value, image, methodName) {
 		let output=value&&'object'===typeof value&&'image' in value?value.image:value;
 		if (!output||'string'!==typeof output.base64||!/^image\/(png|jpeg|webp)$/.test(output.mimeType)) return null;
 		let dimensions=await this.GetDimensions(output);
@@ -34,10 +34,10 @@ var ImageService=Function.extend(Object, function () {
 			...original, id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
 			, base64: output.base64, mimeType: output.mimeType, mediaId: undefined
 			, ...dimensions
-			, prompt: `Local runtime edit: ${actionName}`
+			, prompt: `本地方法修改：${methodName}`
 			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
 			, aspectRatio: this.GetAspectRatio(dimensions)
-			, title: output.title||`${original.title||'Image'} · ${actionName}`
+			, title: output.title||`${original.title||'Image'} · ${methodName}`
 		};
 	};
 

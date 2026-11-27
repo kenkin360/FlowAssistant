@@ -20,7 +20,7 @@ var App=Function.extend(React.Component, function () {
 	}
 
 	_['public'].componentDidMount=function () {
-		Object.assign(globalThis, {React, Flow, fabric, App, Bundle, Resource});
+		Object.assign(globalThis, {React, Flow, fabric, Bundle, Resource});
 		_(this).Load(this);
 	};
 

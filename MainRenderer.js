@@ -5,18 +5,18 @@ var MainRenderer=Function.extend(React.Component, function () {
 		let initialize=function () {
 			let $this=_(this);
 			$this.m_view=new View();
-			$this.m_agent=new Agent(props.HostSourceUrl);
+			$this.m_assistant=new Assistant(props.HostSourceUrl);
 			$this.m_unsubscribe=null;
 			let template=document.createElement('template');
 			template.innerHTML=agentTemplate;
-			let app=template.content.querySelector('.ca-app');
-			let media=app.querySelector('.ca-left');
-			let chat=app.querySelector('.ca-right');
+			let shell=template.content.querySelector('.ca-app');
+			let media=shell.querySelector('.ca-left');
+			let chat=shell.querySelector('.ca-right');
 			$this.m_templates={Media: {__html: media.outerHTML}, Chat: {__html: chat.outerHTML}};
 			media.remove();
 			chat.remove();
-			app.querySelector('.ca-work').remove();
-			$this.m_templates.Shell={__html: template.content.querySelector('style').outerHTML+app.innerHTML};
+			shell.querySelector('.ca-work').remove();
+			$this.m_templates.Shell={__html: template.content.querySelector('style').outerHTML+shell.innerHTML};
 			$this.m_modals={};
 			this.state={Focused: 'Chat'};
 		};
@@ -40,29 +40,29 @@ var MainRenderer=Function.extend(React.Component, function () {
 
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
-		$this.m_unsubscribe=$this.m_agent.Subscribe(()=>$this.Update());
+		$this.m_unsubscribe=$this.m_assistant.Subscribe(()=>$this.Update());
 		let root=$this.m_view.GetRoot();
 		root.onclick=(event)=>{
 			let target=event.target.closest?.('[data-action],[data-ratio]');
 			if (!target||!root.contains(target)) return;
-			if (target.dataset.ratio) { $this.m_agent.GetActions().GetMediaOperations().SetRatio(target.dataset.ratio); return; }
+			if (target.dataset.ratio) { $this.m_assistant.GetMethods().MediaOperations.SetRatio(target.dataset.ratio); return; }
 			switch (target.dataset.action) {
 				case 'media-window': new HtmlNode($this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
 				case 'chat-window': new HtmlNode($this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
-				case 'send': $this.m_agent.IsConsulting()?$this.m_agent.Stop():$this.Submit(); break;
-				case 'select': $this.m_agent.GetActions().GetMediaOperations().SelectMedia(); break;
-				case 'camera': $this.m_agent.GetActions().GetMediaOperations().CaptureCamera(); break;
-				case 'download': $this.m_agent.GetActions().GetMediaOperations().Download(); break;
-				case 'generate': $this.m_agent.GetActions().GetMediaOperations().Generate(); break;
+				case 'send': $this.m_assistant.IsConsulting()?$this.m_assistant.Stop():$this.Submit(); break;
+				case 'select': $this.m_assistant.GetMethods().MediaOperations.SelectMedia(); break;
+				case 'camera': $this.m_assistant.GetMethods().MediaOperations.CaptureCamera(); break;
+				case 'download': $this.m_assistant.GetMethods().MediaOperations.Download(); break;
+				case 'generate': $this.m_assistant.GetMethods().MediaOperations.Generate(); break;
 				case 'info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'flex'); break;
 				case 'close-info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'none'); break;
-				case 'copy-prompt': navigator.clipboard.writeText($this.m_agent.GetActions().GetMedia().GetPrompt()||''); break;
+				case 'copy-prompt': navigator.clipboard.writeText($this.m_assistant.GetMethods().MediaOperations.GetMedia().GetPrompt()||''); break;
 			}
 		};
 		root.onkeydown=(event)=>{
 			if (event.target===$this.Node('input')&&'Enter'===event.key&&!event.shiftKey&&!event.isComposing) {
 				event.preventDefault();
-				if (!$this.m_agent.IsConsulting()) $this.Submit();
+				if (!$this.m_assistant.IsConsulting()) $this.Submit();
 			}
 		};
 		$this.Update();
@@ -72,16 +72,16 @@ var MainRenderer=Function.extend(React.Component, function () {
 			this.forceUpdate();
 			this.Update();
 		});
-		$this.m_agent.SetReady($this.m_agent.Welcome(navigator.language));
+		$this.m_assistant.SetReady($this.m_assistant.Welcome(navigator.language));
 	};
 
 	_['protected'].Update=function () {
-		_(this).m_view.Update(_(this).m_agent.GetActions().GetMedia(), _(this).m_agent.GetMessages(), _(this).m_agent.IsConsulting(), (key)=>this.Text(key), (id)=>_(this).m_agent.GetActions().GetMediaOperations().SelectVersion(id));
+		_(this).m_view.Update(_(this).m_assistant.GetMethods().MediaOperations.GetMedia(), _(this).m_assistant.GetMessages(), _(this).m_assistant.IsConsulting(), _(this).m_assistant.GetMethods().MediaOperations.IsGenerating(), (key)=>this.Text(key), (id)=>_(this).m_assistant.GetMethods().MediaOperations.SelectVersion(id));
 	};
 
 	_['public'].componentWillUnmount=function () {
 		let $this=_(this);
-		_(this).m_agent.Stop();
+		_(this).m_assistant.Stop();
 		let root=$this.m_view.GetRoot();
 		if (root) root.onclick=root.onkeydown=null;
 		for (let name of this.Mounted()) this.Unmount(name);
@@ -134,10 +134,10 @@ var MainRenderer=Function.extend(React.Component, function () {
 		let input=this.Node('input');
 		let value=input?.value;
 		if (input) input.value='';
-		return $this.m_agent.Send(value);
+		return $this.m_assistant.Send(value);
 	};
 
-	_['protected'].m_agent=null;
+	_['protected'].m_assistant=null;
 	_['protected'].m_view=null;
 	_['protected'].m_unsubscribe=null;
 	_['protected'].m_templates=null;

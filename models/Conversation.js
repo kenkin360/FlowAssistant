@@ -16,6 +16,6 @@ var Conversation=Function.extend(Object, function () {
 		_(this).m_messages=[..._(this).m_messages, message];
 		return message;
 	};
-	_['public'].Clear=function () { _(this).m_messages=[]; };
+	_['public'].Clear=function () { _(this).m_messages=[]; return {message: '對話已清空。'}; };
 	_['protected'].m_messages=null;
 });

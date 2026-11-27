@@ -59,7 +59,7 @@ var View=Function.extend(Object, function () {
 		mounted.delete(name);
 	};
 	_['public'].Mounted=function () { return [..._(this).m_mounted.keys()]; };
-	_['public'].Update=function (media, messages, consulting, text, select) {
+	_['public'].Update=function (media, messages, consulting, generating, text, select) {
 		let root=_(this).m_root;
 		if (!root) return;
 		let node=(role)=>new HtmlNode(this.Node(role));
@@ -87,7 +87,7 @@ var View=Function.extend(Object, function () {
 		video.Show(showVideo);
 		node('empty').SetStyle('display', showImage||showVideo?'none':'block');
 		node('image-ratio').SetText(showImage&&media.GetActiveMedia().Width&&media.GetActiveMedia().Height?`${media.GetActiveMedia().Width} × ${media.GetActiveMedia().Height}`:showVideo?`${media.GetActiveMedia().DurationSeconds||'?'} s`:'');
-		node('generating').SetStyle('display', media.IsGenerating?'flex':'none');
+		node('generating').SetStyle('display', generating?'flex':'none');
 		this.Localize(text);
 		new HtmlNode(root.querySelector('[data-action="send"]')).SetText(consulting?text('stop'):text('send'));
 		node('pending').SetStyle('display', !!media.GetPrompt()?'block':'none');

@@ -16,7 +16,7 @@ var MessageList=Function.extend(Object, function () {
 			let item=document.createElement('div');
 			item.className=`ca-message ca-${message.Sender}`;
 			let time=document.createElement('small');
-			time.textContent=('user'===message.Sender?text('you'):'system'===message.Sender?'App':text('agent'))+' · '+message.Timestamp;
+			time.textContent=('user'===message.Sender?text('you'):'system'===message.Sender?'System':text('agent'))+' · '+message.Timestamp;
 			item.appendChild(time);
 			if (message.Attachment instanceof Media.Image||message.Attachment instanceof Media.Video) {
 				let preview=document.createElement(message.Attachment instanceof Media.Video?'video':'img');
