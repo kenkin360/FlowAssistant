@@ -1,13 +1,11 @@
 var Assistant=Function.extend(Object, function () {
 	var _=this(Assistant);
 	Assistant=_[Assistant];
-	function Assistant(language) {
+	function Assistant() {
 		_['base'].apply(this, arguments);
-		_(this).m_language=/^zh\b/i.test(language||'')?'zh':'en';
 		_(this).m_activeTurn=null;
 		_(this).m_ready=Promise.resolve();
 	}
-	_['public'].SetLanguage=function (language) { _(this).m_language=/^zh\b/i.test(language||'')?'zh':'en'; };
 	_['public'].SetReady=function (ready) { _(this).m_ready=ready; };
 	_['public'].WaitReady=function () { return _(this).m_ready; };
 	_['public'].IsConsulting=function () { return !!_(this).m_activeTurn; };
@@ -28,7 +26,7 @@ var Assistant=Function.extend(Object, function () {
 	_['public'].ReadResponse=function (value, allowAction=true) {
 		let raw=String(value??'');
 		let fallback=()=>{
-			let label='zh'===_(this).m_language?'回應格式不正確，未執行任何動作。原始回應：\n':'Invalid response format; no action was performed. Original response:\n';
+			let label='回應格式不正確，未執行任何動作。原始回應：\n';
 			return {reply: label+raw, attemptPlan: [], localAction: null, source: null, Type: null, Valid: false};
 		};
 		let match=raw.match(/^\s*(\{[\s\S]*\})\s*$/);
@@ -134,7 +132,22 @@ var Assistant=Function.extend(Object, function () {
 		tools.CompleteResponse(answer, responses, artifact);
 	};
 
-	_['protected'].m_language=null;
+	_['public'].GetInstruction=function (runtime, instructions) {
+		return `
+你是此 App 的 Assistant。依使用者本輪語言自然答覆；根據實際能力決定是否請 App 執行操作。
+實際能力：${runtime}
+操作說明：${instructions}
+每次只輸出一個標準 JSON 物件，不要附加 Markdown 或文字。一般回覆 {"reply":"給使用者看的文字"}；操作回覆 {"reply":"","attemptPlan":[{"action":"操作名稱","attempts":1,"reason":"目的與重試條件"}],"localAction":{"name":"操作名稱","arguments":{}}}。一次只執行一項操作，待取得結果再繼續。resetConversation 清空對話。reply 是唯一顯示給使用者的文字。
+`;
+	};
+	_['public'].Welcome=function (language, runtime, setupError) {
+		return this.RequestResponse('你是否了解自己的能力?', {systemInstruction: this.GetInstruction(runtime, '')+'\n你正在此 App 中啟動。請依照實際檢查結果簡短歡迎使用者，描述目前可用的能力。啟動結果：'+(setupError||'success')+'。瀏覽器語系：'+(language||'en')});
+	};
+	_['public'].Report=function (event, details, messages) {
+		let recent=messages.slice(-8).map((entry)=>entry.Sender+': '+entry.Text).join('\n');
+		let prompt='最近對話：\n'+recent+'\nApp 事件：'+event+'\n實際結果：'+JSON.stringify(details)+'\n請依使用者語言簡短答覆。';
+		return this.RequestResponse(prompt, {systemInstruction: this.GetInstruction('', '')});
+	};
 	_['protected'].m_activeTurn=null;
 	_['protected'].m_ready=null;
 });

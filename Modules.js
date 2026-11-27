@@ -86,6 +86,7 @@ var Modules=Function.extend(Object, function () {
 		let dynamic=_(this).m_dynamic;
 		return dynamic.size?[...dynamic].map(([name, time])=>`${name} (載入時間: ${time})`).join(', '):'(無)';
 	};
+	_['public'].GetInstruction=function () { return "readCompiledSource 空參數列出啟動時已完整拆解的固定 host 檔案，{file} 取得完整原碼；readRemoteSource 空參數列出 Bundle.Config 等遠端來源，{name} 可重新取得其內容；readInstalledSource 空參數列出已安裝模組，{name} 取得安裝時保留的完整原碼，遠端安裝者可重新取得。inspectRuntime 檢查現有函數、模組及原碼入口。\nloadModule 的原碼或遠端腳本 URL 放在同一個 JSON 物件的 source 字串；sourceType 為 javascript 或 js（原碼），或 text 或 url（遠端腳本 URL）。localAction 為 {\"name\":\"loadModule\",\"arguments\":{\"name\":\"模組名稱\"}}，並在 attemptPlan 列出 loadModule。自行撰寫類型時，以頂層 var 和 Function.extend(Base, factory) 宣告，將建構子、方法及靜態成員寫在類別定義內；需要完整範例時，可透過 readInstalledSource 查看 DrawRectangle 原碼。可呼叫的模組提供靜態 Run。\n直接以模組名稱作為操作名稱呼叫其 Run；rollback 撤銷上一項模組安裝；resetConversation 清空對話。需要實作新功能時可讀程式碼並撰寫、載入模組。\n可用模組可使用瀏覽器標準 API；以模組名稱呼叫靜態 Run。"; };
 	_['protected'].m_sources=null;
 	_['protected'].m_versions=null;
 	_['protected'].m_dynamic=null;

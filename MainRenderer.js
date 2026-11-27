@@ -5,7 +5,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 		let initialize=function () {
 			let $this=_(this);
 			$this.m_view=new View();
-			$this.m_application=new AgentApplication(props.SourceFiles, props.HostSourceUrl);
+			$this.m_agent=new Agent(props.HostSourceUrl);
 			$this.m_unsubscribe=null;
 			let template=document.createElement('template');
 			template.innerHTML=agentTemplate;
@@ -42,47 +42,47 @@ var MainRenderer=Function.extend(React.Component, function () {
 
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
-		$this.m_application.GetRuntime().UI=this;
-		$this.m_unsubscribe=$this.m_application.Subscribe(()=>$this.Update());
+		$this.m_agent.GetActions().GetRuntime().UI=this;
+		$this.m_unsubscribe=$this.m_agent.Subscribe(()=>$this.Update());
 		let root=$this.m_view.GetRoot();
 		root.onclick=(event)=>{
 			let target=event.target.closest?.('[data-action],[data-ratio]');
 			if (!target||!root.contains(target)) return;
-			if (target.dataset.ratio) { $this.m_application.SetRatio(target.dataset.ratio); return; }
+			if (target.dataset.ratio) { $this.m_agent.GetActions().GetMediaOperations().SetRatio(target.dataset.ratio); return; }
 			switch (target.dataset.action) {
 				case 'media-window': new HtmlNode($this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
 				case 'chat-window': new HtmlNode($this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
-				case 'send': $this.m_application.IsConsulting()?$this.m_application.Stop():$this.Submit(); break;
-				case 'select': $this.m_application.SelectMedia(); break;
-				case 'camera': $this.m_application.CaptureCamera(); break;
-				case 'download': $this.m_application.Download(); break;
-				case 'generate': $this.m_application.Generate(); break;
+				case 'send': $this.m_agent.IsConsulting()?$this.m_agent.Stop():$this.Submit(); break;
+				case 'select': $this.m_agent.GetActions().GetMediaOperations().SelectMedia(); break;
+				case 'camera': $this.m_agent.GetActions().GetMediaOperations().CaptureCamera(); break;
+				case 'download': $this.m_agent.GetActions().GetMediaOperations().Download(); break;
+				case 'generate': $this.m_agent.GetActions().GetMediaOperations().Generate(); break;
 				case 'info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'flex'); break;
 				case 'close-info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'none'); break;
-				case 'copy-prompt': navigator.clipboard.writeText($this.m_application.GetMedia().GetPrompt()||''); break;
+				case 'copy-prompt': navigator.clipboard.writeText($this.m_agent.GetActions().GetMedia().GetPrompt()||''); break;
 			}
 		};
 		root.onkeydown=(event)=>{
 			if (event.target===$this.Node('input')&&'Enter'===event.key&&!event.shiftKey&&!event.isComposing) {
 				event.preventDefault();
-				if (!$this.m_application.IsConsulting()) $this.Submit();
+				if (!$this.m_agent.IsConsulting()) $this.Submit();
 			}
 		};
 		$this.Update();
 		$this.ArrangeModals();
-		$this.m_application.SetReady($this.m_application.Welcome(navigator.language));
+		$this.m_agent.SetReady($this.m_agent.Welcome(navigator.language));
 	};
 
 	_['protected'].Update=function () {
-		_(this).m_view.Update(_(this).m_application.GetMedia(), _(this).m_application.GetMessages(), _(this).m_application.IsConsulting(), (key)=>this.Text(key), (id)=>_(this).m_application.SelectVersion(id));
+		_(this).m_view.Update(_(this).m_agent.GetActions().GetMedia(), _(this).m_agent.GetMessages(), _(this).m_agent.IsConsulting(), (key)=>this.Text(key), (id)=>_(this).m_agent.GetActions().GetMediaOperations().SelectVersion(id));
 	};
 
 	_['public'].componentWillUnmount=function () {
 		let $this=_(this);
-		_(this).m_application.Stop();
+		_(this).m_agent.Stop();
 		let root=$this.m_view.GetRoot();
 		if (root) root.onclick=root.onkeydown=null;
-		let runtime=_(this).m_application.GetRuntime();
+		let runtime=_(this).m_agent.GetActions().GetRuntime();
 		if (runtime.UI===this) delete runtime.UI;
 		for (let name of this.Mounted()) this.Unmount(name);
 		$this.m_view.Dispose();
@@ -134,10 +134,10 @@ var MainRenderer=Function.extend(React.Component, function () {
 		let input=this.Node('input');
 		let value=input?.value;
 		if (input) input.value='';
-		return $this.m_application.Send(value);
+		return $this.m_agent.Send(value);
 	};
 
-	_['protected'].m_application=null;
+	_['protected'].m_agent=null;
 	_['protected'].m_view=null;
 	_['protected'].m_unsubscribe=null;
 	_['protected'].m_templates=null;

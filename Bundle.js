@@ -37,13 +37,16 @@ var Bundle=Function.extend(Function, function () {
 
 	Bundle.Config=[
 		['MainRenderer', Bundle.CustomAgent('MainRenderer.js')]
-		, ['AgentApplication', Bundle.CustomAgent('AgentApplication.js')]
+		, ['Agent', Bundle.CustomAgent('Agent.js')]
+		, ['AppActions', Bundle.CustomAgent('AppActions.js')]
+		, ['ActionExecutor', Bundle.CustomAgent('ActionExecutor.js')]
 		, ['Assistant', Bundle.CustomAgent('Assistant.js')]
 		, ['Conversation', Bundle.CustomAgent('models/Conversation.js')]
 		, ['HtmlNode', 'https://esm.sh/gh/kenkin360/FlowerX/HtmlNode.js?raw']
 		, ['Modal', 'https://esm.sh/gh/kenkin360/FlowerX/Modal.js?raw']
 		, ['ImageService', Bundle.CustomAgent('ImageService.js')]
 		, ['VideoService', Bundle.CustomAgent('VideoService.js')]
+		, ['MediaOperations', Bundle.CustomAgent('MediaOperations.js')]
 		, ['MediaWorkspace', Bundle.CustomAgent('models/MediaWorkspace.js')]
 		, ['Message', Bundle.CustomAgent('models/Message.js')]
 		, ['Media', Bundle.CustomAgent('models/Media.js')]
