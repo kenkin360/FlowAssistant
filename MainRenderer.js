@@ -45,18 +45,23 @@ var MainRenderer=Function.extend(React.Component, function () {
 		root.onclick=(event)=>{
 			let target=event.target.closest?.('[data-action],[data-ratio]');
 			if (!target||!root.contains(target)) return;
-			if (target.dataset.ratio) { $this.m_assistant.GetMethods().MediaOperations.SetRatio(target.dataset.ratio); return; }
+			let imageService=$this.m_assistant.GetMethods().ImageService;
+			let workspace=imageService.GetWorkspace();
+			if (target.dataset.ratio) { workspace.SetRatio(target.dataset.ratio); return; }
 			switch (target.dataset.action) {
 				case 'media-window': new HtmlNode($this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
 				case 'chat-window': new HtmlNode($this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
 				case 'send': $this.m_assistant.IsConsulting()?$this.m_assistant.Stop():$this.Submit(); break;
-				case 'select': $this.m_assistant.GetMethods().MediaOperations.SelectMedia(); break;
-				case 'camera': $this.m_assistant.GetMethods().MediaOperations.CaptureCamera(); break;
-				case 'download': $this.m_assistant.GetMethods().MediaOperations.Download(); break;
-				case 'generate': $this.m_assistant.GetMethods().MediaOperations.Generate(); break;
+				case 'select': imageService.SelectCurrent(); break;
+				case 'camera': imageService.CaptureCurrent(); break;
+				case 'download':
+					if (workspace.GetActiveMedia() instanceof Media.Video) $this.m_assistant.GetMethods().VideoService.DownloadCurrent(workspace).catch((error)=>$this.m_assistant.ReportError(error));
+					else imageService.DownloadCurrent();
+					break;
+				case 'generate': imageService.GenerateCurrent(); break;
 				case 'info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'flex'); break;
 				case 'close-info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'none'); break;
-				case 'copy-prompt': navigator.clipboard.writeText($this.m_assistant.GetMethods().MediaOperations.GetMedia().GetPrompt()||''); break;
+				case 'copy-prompt': navigator.clipboard.writeText(workspace.GetPrompt()||''); break;
 			}
 		};
 		root.onkeydown=(event)=>{
@@ -76,7 +81,9 @@ var MainRenderer=Function.extend(React.Component, function () {
 	};
 
 	_['protected'].Update=function () {
-		_(this).m_view.Update(_(this).m_assistant.GetMethods().MediaOperations.GetMedia(), _(this).m_assistant.GetMessages(), _(this).m_assistant.IsConsulting(), _(this).m_assistant.GetMethods().MediaOperations.IsGenerating(), (key)=>this.Text(key), (id)=>_(this).m_assistant.GetMethods().MediaOperations.SelectVersion(id));
+		let imageService=_(this).m_assistant.GetMethods().ImageService;
+		let workspace=imageService.GetWorkspace();
+		_(this).m_view.Update(workspace, _(this).m_assistant.GetMessages(), _(this).m_assistant.IsConsulting(), imageService.IsGenerating(), (key)=>this.Text(key), (id)=>workspace.SelectVersion(id));
 	};
 
 	_['public'].componentWillUnmount=function () {

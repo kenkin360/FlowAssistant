@@ -2,10 +2,80 @@ var ImageService=Function.extend(Object, function () {
 	var _=this(ImageService);
 	ImageService=_[ImageService];
 
-	function ImageService() {
+	function ImageService(workspace, notify) {
 		_['base'].apply(this, arguments);
+		_(this).m_workspace=workspace;
+		_(this).m_notify=notify;
+		_(this).m_generating=false;
 	}
 	ImageService.ModelDisplayName='🍌 Nano Banana 2.1';
+	_['public'].GetWorkspace=function () { return _(this).m_workspace; };
+	_['public'].IsGenerating=function () { return _(this).m_generating; };
+	_['public'].GetInstruction=function () {
+		return '若有待使用者確認的影像生成提示詞，回覆同一 JSON 物件的 suggestedPrompt、aspectRatio。';
+	};
+	_['public'].GetRequestContext=async function () {
+		let workspace=this.GetWorkspace();
+		let selected=workspace.GetActiveMedia();
+		let artifact=workspace.GetCurrentMedia();
+		let info=selected instanceof Media.Image?await this.GetDimensions(await workspace.GetLegacyMedia(selected)):null;
+		let text=selected||artifact?'目前影像：'+(info?info.width+' × '+info.height+' ('+selected.MimeType+')':'無')+'；目前產物：'+JSON.stringify(workspace.Describe(artifact))+'；選定比例：'+workspace.GetRatio():'';
+		let images=[];
+		if (selected instanceof Media.Image) {
+			let image=await workspace.GetLegacyMedia(selected);
+			images=[{base64: image.base64, mimeType: image.mimeType}];
+		}
+		return {Text: text, Images: images};
+	};
+	_['public'].ApplySuggestions=function (responses) {
+		let workspace=this.GetWorkspace();
+		for (let response of responses) {
+			if ('string'===typeof response.suggestedPrompt) workspace.SetPrompt(response.suggestedPrompt);
+			if (['original', '1:1', '16:9', '9:16', '4:3', '3:4'].includes(response.aspectRatio)) workspace.SetRatio(response.aspectRatio);
+		}
+	};
+	_['public'].SelectCurrent=async function () {
+		try {
+			let image=await this.Select();
+			if (!image) return;
+			this.GetWorkspace().Add(image);
+			await _(this).m_notify('Media selected', {Title: image.title, Width: image.width, Height: image.height}, image);
+		}
+		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+	};
+	_['public'].CaptureCurrent=async function () {
+		try {
+			let image=await this.Capture();
+			if (!image) return;
+			this.GetWorkspace().Add(image);
+			await _(this).m_notify('Camera image captured', {Title: image.title, Width: image.width, Height: image.height}, image);
+		}
+		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+	};
+	_['public'].GenerateCurrent=async function (prompt) {
+		let $this=_(this);
+		let workspace=this.GetWorkspace();
+		let text=String(prompt||workspace.GetPrompt()).trim();
+		if (!text||$this.m_generating) return;
+		$this.m_generating=true;
+		workspace.NotifyChanged();
+		try {
+			let selected=workspace.GetActiveMedia();
+			let result=await this.Generate(text, selected instanceof Media.Image?await workspace.GetLegacyMedia(selected):null, workspace.GetRatio(), workspace.History.length+1);
+			workspace.Add(result.Image);
+			await $this.m_notify('Image generation completed', {Title: result.Image.title, Prompt: text, Width: result.Image.width, Height: result.Image.height}, result.Image);
+		}
+		catch (error) { await $this.m_notify('Operation failed', {Error: error.message||String(error)}); }
+		finally { $this.m_generating=false; workspace.NotifyChanged(); }
+	};
+	_['public'].DownloadCurrent=async function () {
+		try {
+			let workspace=this.GetWorkspace();
+			let selected=workspace.GetActiveMedia();
+			if (selected instanceof Media.Image) await this.Download(await workspace.GetLegacyMedia(selected));
+		}
+		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+	};
 
 	_['public'].GetDimensions=async function (image) {
 		if (Number.isInteger(image?.width)&&Number.isInteger(image?.height)&&image.width>0&&image.height>0) {
@@ -132,6 +202,9 @@ var ImageService=Function.extend(Object, function () {
 			, filename: `revised_concept_${Date.now()}.${image.mimeType.includes('jpeg')||image.mimeType.includes('jpg')?'jpg':'png'}`
 		});
 	};
+	_['protected'].m_workspace=null;
+	_['protected'].m_notify=null;
+	_['protected'].m_generating=false;
 
 });
 

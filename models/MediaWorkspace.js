@@ -1,11 +1,12 @@
 var MediaWorkspace=Function.extend(Object, function () {
 	var _=this(MediaWorkspace);
 	MediaWorkspace=_[MediaWorkspace];
-	function MediaWorkspace() {
+	function MediaWorkspace(changed) {
 		_['base'].apply(this, arguments);
 		this.History=[];
 		this.Prompt='';
 		this.Ratio='original';
+		_(this).m_changed=changed;
 		_(this).m_selectedId=null;
 		_(this).m_artifact=null;
 	}
@@ -17,6 +18,36 @@ var MediaWorkspace=Function.extend(Object, function () {
 	};
 	_['public'].GetPrompt=function () { return this.Prompt; };
 	_['public'].GetRatio=function () { return this.Ratio; };
+	_['public'].NotifyChanged=function () { _(this).m_changed?.(); };
+	_['public'].SetRatio=function (ratio) {
+		if (!['original', '1:1', '16:9', '9:16', '4:3', '3:4'].includes(ratio)) throw new Error('Unsupported aspect ratio.');
+		this.Apply({selectedRatio: ratio});
+	};
+	_['public'].SetPrompt=function (prompt) { this.Apply({generationPrompt: prompt}); };
+	_['public'].SelectVersion=function (id) {
+		let media=this.History.find((item)=>item.Id===id);
+		if (!media) throw new Error('Media version not found: '+id);
+		this.Apply({activeMedia: media, currentMedia: media});
+	};
+	_['public'].Add=function (value) {
+		let media=this.ToMedia(value);
+		if (media instanceof Media.Image||media instanceof Media.Video) {
+			this.Apply({activeMedia: media, currentMedia: media, history: [media, ...this.History]});
+		}
+		else this.Apply({currentMedia: media});
+		return media;
+	};
+	_['public'].GetLegacyMedia=async function (media) {
+		if (!media) return null;
+		return {...media.toJSON(), base64: media.Data?await media.ToBase64():undefined};
+	};
+	_['public'].Describe=function (media) {
+		if (!media) return null;
+		return {type: media instanceof Media.Image?'image':media instanceof Media.Video?'video':'media',
+			id: media.Id, title: media.Title, mimeType: media.MimeType, mediaId: media.MediaId,
+			...(media instanceof Media.Image?{width: media.Width, height: media.Height}:{}),
+			...(media instanceof Media.Video?{durationSeconds: media.DurationSeconds, resolution: media.Resolution}:{})};
+	};
 	_['public'].ToMedia=function (value) {
 		if (!value||value instanceof Media) return value;
 		return this.History.find((entry)=>entry.Id===value.id)||Media.From(value);
@@ -40,10 +71,12 @@ var MediaWorkspace=Function.extend(Object, function () {
 		}
 		if ('selectedRatio' in patch) this.Ratio=patch.selectedRatio;
 		if ('generationPrompt' in patch) this.Prompt=patch.generationPrompt;
+		this.NotifyChanged();
 	};
 	_['public'].History=null;
 	_['public'].Prompt=null;
 	_['public'].Ratio=null;
 	_['protected'].m_selectedId=null;
 	_['protected'].m_artifact=null;
+	_['protected'].m_changed=null;
 });

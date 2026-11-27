@@ -45,7 +45,6 @@ var Bundle=Function.extend(Function, function () {
 		, ['Modal', 'https://esm.sh/gh/kenkin360/FlowerX/Modal.js?raw']
 		, ['ImageService', Bundle.SourceUrl('ImageService.js')]
 		, ['VideoService', Bundle.SourceUrl('VideoService.js')]
-		, ['MediaOperations', Bundle.SourceUrl('MediaOperations.js')]
 		, ['MediaWorkspace', Bundle.SourceUrl('models/MediaWorkspace.js')]
 		, ['Message', Bundle.SourceUrl('models/Message.js')]
 		, ['Media', Bundle.SourceUrl('models/Media.js')]
