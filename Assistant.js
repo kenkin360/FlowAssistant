@@ -87,6 +87,53 @@ var Assistant=Function.extend(Object, function () {
 		return this.ReadResponse(response?.text, allowAction);
 	};
 
+	_['public'].Process=async function (message, turn, tools) {
+		await this.WaitReady();
+		if (turn?.signal.aborted) return;
+		let plan=[];
+		let reports=[];
+		let responses=[];
+		let artifact=null;
+		let answer='';
+		for (;;) {
+			if (turn?.signal.aborted) return;
+			let request=await tools.GetRequest(message, reports, plan);
+			let response=await this.RequestResponse(request.Prompt, request.Options, true);
+			if (turn?.signal.aborted) return;
+			answer=response.reply;
+			if (response.Valid) {
+				responses.push(response);
+				if (response.attemptPlan.length) plan=response.attemptPlan;
+			}
+			let action=response.localAction;
+			if (!action) break;
+			if (!plan.some((item)=>item.action===action.name)) {
+				reports.push({action: action.name, status: 'error', result: 'The action needs an attemptPlan entry before execution.'});
+				continue;
+			}
+			try {
+				let result=await tools.RunRequestedAction(action, response, turn);
+				if (turn?.signal.aborted) return;
+				if (result.conversationReset) return;
+				if (result.artifact) artifact=result.artifact;
+				reports.push({action: action.name, status: 'success', result: result.message,
+					...(result.artifact?{artifact: tools.DescribeResult(result)}:{})});
+			}
+			catch (error) {
+				reports.push({action: action.name, status: 'error', result: error instanceof Error?error.message:String(error)});
+			}
+		}
+		if (!answer) {
+			let summary=await tools.GetSummaryRequest(message, reports);
+			let response=await this.RequestResponse(summary.Prompt, summary.Options);
+			if (turn?.signal.aborted) return;
+			answer=response.reply;
+		}
+		if (!answer) answer=this.ReadResponse('', false).reply;
+		if (turn?.signal.aborted) return;
+		tools.CompleteResponse(answer, responses, artifact);
+	};
+
 	_['protected'].m_language=null;
 	_['protected'].m_activeTurn=null;
 	_['protected'].m_ready=null;

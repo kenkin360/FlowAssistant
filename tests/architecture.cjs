@@ -79,5 +79,16 @@ if (parser.ReadResponse('{"reply":"", "attemptPlan":[{"action":"hello"}],"localA
   view.Update(agent.GetMedia(),agent.GetMessages(),false,key=>key,()=>{});
   const result=await agent.RunAction({name:'Compute',arguments:{}},true);
   if (result.message!=='42'||agent.GetMedia().History.length) throw new Error('Generic action flow');
+  let calls=0;
+  globalThis.Flow.generate.text=async()=>({text:[
+    '{"reply":"welcome"}',
+    '{"reply":"","attemptPlan":[{"action":"Compute"}],"localAction":{"name":"Compute","arguments":{}}}',
+    '{"reply":"The answer is 42."}'
+  ][calls++]});
+  const workflow=new AgentApplication([], '');
+  workflow.SetReady(workflow.Welcome('en'));
+  await workflow.Send('What is six times seven?');
+  if (calls!==3||workflow.GetMessages().at(-1)?.Text!=='The answer is 42.') throw new Error('Assistant action loop');
+  if (workflow.GetMessages().at(-1).Attachment||workflow.GetMedia().History.length) throw new Error('Non-media request became media');
   console.log('Behavior checks passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

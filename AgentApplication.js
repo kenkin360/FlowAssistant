@@ -327,151 +327,84 @@ generateVideo 可由使用者提出影片生成要求時執行，參數為 {prom
 		};
 	};
 
-	_['protected'].HandleMessage=async function (message, turn) {
+	_['protected'].HandleMessage=function (message, turn) {
+		return _(this).m_assistant.Process(message, turn, this);
+	};
+
+	_['public'].GetRequest=async function (message, reports, plan) {
 		let $this=_(this);
-		await $this.m_assistant.WaitReady();
-		if (turn?.signal.aborted) return;
-
-		let app=$this;
-				let imageInfo=await app.GetImageInfo();
-		if (turn?.signal.aborted) return;
-
-		let prior=app.GetMessages().slice();
+		let prior=this.GetMessages().slice();
 		if (prior.at(-1)?.Sender==='user'&&prior.at(-1)?.Text===message) prior.pop();
-
 		let history=prior.slice(-20).map((entry)=>`${entry.Sender}: ${entry.Text}`).join('\n\n');
-
+		let selected=$this.m_media.GetActiveMedia();
 		let artifact=$this.m_media.GetCurrentMedia();
-		let question=()=>`
+		let imageInfo=selected instanceof Media.Image?await this.GetImageInfo():null;
+		let context=selected||artifact?`
 Current image: ${imageInfo?`${imageInfo.width} × ${imageInfo.height} pixels (${imageInfo.mimeType})`:'none'}
 Current artifact: ${JSON.stringify($this.DescribeMedia(artifact))}
-Selected generation aspect ratio: ${$this.m_media.GetRatio()}
+Selected generation aspect ratio: ${$this.m_media.GetRatio()}`:'';
+		let question=`
+${context}
 Previous conversation (up to 20 messages):
 ${history}
 Current user message:
 ${message}
 `;
-
-		let image=$this.m_media.GetActiveMedia() instanceof Media.Image?await $this.ToLegacyMedia($this.m_media.GetActiveMedia()):null;
-		let promptOut=$this.m_media.GetPrompt();
-		let ratioOut=$this.m_media.GetRatio();
-		let edited=null;
-		let plan=[];
-		let reports=[];
-		let answer='';
-		let structured=false;
-		let runtime=await app.InspectRuntime({});
-
-		for (;;) {
-			if (turn?.signal.aborted) return;
-
-			let request=reports.length?`
-${question()}
+		let prompt=reports.length?`
+${question}
 Current action plan: ${JSON.stringify(plan)}
 Actual action results:
 ${reports.map(JSON.stringify).join('\n')}
 Choose the next action, revise the plan, or answer the user based on the actual results.
-`:question();
+`:question;
+		let runtime=await this.InspectRuntime({});
+		let options={systemInstruction: $this.Instruction(runtime)};
+		if (selected instanceof Media.Image) {
+			let image=await $this.ToLegacyMedia(selected);
+			options.images=[{base64: image.base64, mimeType: image.mimeType}];
+		}
+		return {Prompt: `${prompt}. `, Options: options};
+	};
 
-			let options={systemInstruction: $this.Instruction(runtime)};
-			if (image) options.images=[{base64: image.base64, mimeType: image.mimeType}];
+	_['public'].GetSummaryRequest=async function (message, reports) {
+		let request=await this.GetRequest(message, reports, []);
+		return {Prompt: `${request.Prompt}\nSummarize these results and answer the user in natural language.`, Options: {systemInstruction: `
+依使用者的語言，以 App 回報的結果為依據回答。整個答覆只輸出單一標準 JSON 物件 {"reply":"給使用者看的文字"}，不要附加文字或 Markdown。
+`}};
+	};
 
-			let data=await $this.m_assistant.RequestResponse(`${request}. `, options, true);
-			if (turn?.signal.aborted) return;
-			answer=data.reply;
-
-			if (data.Valid) {
-				structured=true;
-				if ('string'===typeof data.suggestedPrompt) promptOut=data.suggestedPrompt;
-				if (['original', '1:1', '16:9', '9:16', '4:3', '3:4'].includes(data.aspectRatio)) {
-					ratioOut=data.aspectRatio;
-				}
-				if (Array.isArray(data.attemptPlan)&&data.attemptPlan.length) plan=data.attemptPlan;
-			}
-
-			let action=data?.localAction;
-			if (!action||'string'!==typeof action.name) break;
-
-			if (!plan.some((entry)=>entry.action===action.name)) {
-				reports.push({
-					action: action.name
-					, status: 'error'
-					, result: 'The action needs an attemptPlan entry before execution.'
-				});
-				continue;
-			}
-
-			try {
-				if (turn?.signal.aborted) return;
-
-				let result=await app.RunAction(action, true, data.source, data.Type);
-				if (turn?.signal.aborted) return;
-
-				if (result.conversationReset) {
-					let fresh=await $this.m_assistant.RequestResponse('.', {systemInstruction: `
+	_['public'].RunRequestedAction=async function (action, response, turn) {
+		let result=await this.RunAction(action, true, response.source, response.Type);
+		if (result.conversationReset) {
+			let fresh=await _(this).m_assistant.RequestResponse('.', {systemInstruction: `
 App 已清空對話。以使用者這次要求的語言回覆。整個答覆只輸出單一標準 JSON 物件 {"reply":"給使用者看的文字"}，不要附加文字或 Markdown。
 `});
-					if (turn?.signal.aborted) return;
-					app.Reply(fresh.reply);
-					return;
-				}
-
-				if (result.artifact) {
-					artifact=result.artifact;
-					image=artifact instanceof Media.Image?await $this.ToLegacyMedia(artifact):null;
-					imageInfo=artifact instanceof Media.Image?{width: artifact.Width, height: artifact.Height, mimeType: artifact.MimeType}:null;
-					edited=artifact instanceof Media.Image||artifact instanceof Media.Video?artifact:null;
-				}
-
-				if ('loadModule'===action.name) {
-					let modName=action.arguments?.name||'CustomModule';
-					$this.m_modules.RecordDynamic(modName);
-				}
-
-				reports.push({
-					action: action.name
-					, status: 'success'
-					, result: result.message
-					, ...(result.artifact?{artifact: $this.DescribeMedia(result.artifact)}:{})
-				});
-				runtime=await app.InspectRuntime({});
-			}
-			catch (error) {
-				reports.push({
-					action: action.name
-					, status: 'error'
-					, result: error instanceof Error?error.message:String(error)
-				});
-			}
+			if (turn?.signal.aborted) return result;
+			this.Reply(fresh.reply);
+			return result;
 		}
-
-		if (!answer) {
-			let prompt=`
-${question()}
-Actual action results:
-${reports.map(JSON.stringify).join('\n')}
-Summarize these results and answer the user in natural language.
-`;
-			let response=await $this.m_assistant.RequestResponse(`${prompt}. `, {systemInstruction: `
-依使用者的語言，以 App 回報的結果為依據回答。整個答覆只輸出單一標準 JSON 物件 {"reply":"給使用者看的文字"}，不要附加文字或 Markdown。
-`});
-			if (turn?.signal.aborted) return;
-			answer=response.reply;
+		if ('loadModule'===action.name) {
+			_(this).m_modules.RecordDynamic(action.arguments?.name||'CustomModule');
 		}
+		return result;
+	};
 
-		if (!answer) {
-			answer=_(this).m_assistant.ReadResponse('', false).reply;
+	_['public'].DescribeResult=function (result) {
+		return result.artifact?_(this).DescribeMedia(result.artifact):null;
+	};
+
+	_['public'].CompleteResponse=function (answer, responses, artifact) {
+		let prompt=_(this).m_media.GetPrompt();
+		let ratio=_(this).m_media.GetRatio();
+		let changed=false;
+		for (let response of responses) {
+			if ('string'===typeof response.suggestedPrompt) { prompt=response.suggestedPrompt; changed=true; }
+			if (['original', '1:1', '16:9', '9:16', '4:3', '3:4'].includes(response.aspectRatio)) { ratio=response.aspectRatio; changed=true; }
 		}
-		if (turn?.signal.aborted) return;
-
-		if (structured) {
-			app.UpdateMedia({
-				generationPrompt: promptOut
-				, selectedRatio: ratioOut
-			});
-		}
-
-		app.Reply(answer, {attachment: edited||(artifact instanceof Media.Video?artifact:null)});
+		if (changed) this.UpdateMedia({generationPrompt: prompt, selectedRatio: ratio});
+		let current=artifact||_(this).m_media.GetCurrentMedia();
+		let attachment=artifact instanceof Media.Image||artifact instanceof Media.Video?artifact:current instanceof Media.Video?current:null;
+		this.Reply(answer, {attachment});
 	};
 
 	_['protected'].Report=async function (event, details={}, image) {
