@@ -30,9 +30,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 
 	_['public'].Slots=['header', 'canvas', 'chat', 'overlay'];
 	_['public'].Text=function (key) {
-		let english={tagline: 'Describe an edit to use local tools, or generate an image', help: 'Help', target: 'Target Media', conversation: 'Conversation', download: 'Download', empty: 'No media selected. Load an image or describe an idea in chat.', media: '＋ Media', camera: 'Camera', generating: 'Generating image…', history: 'Media versions', copyPrompt: 'Copy prompt', generate: 'Generate image from prompt', ratio: 'Output ratio', original: 'Original', input: 'Discuss an idea, draw a rectangle, inspect code, or create a local tool…', send: 'Send', stop: 'Stop', about: "Discuss image changes or ask for local operations. Only the Generate button creates a new image. You can also inspect and extend this session's code.", close: 'Close', confirmedChanges: 'Generation prompt', you: 'You', agent: 'Assistant', promptDraft: 'Combined prompt draft: ', copy: 'Copy', thinking: 'Thinking and running local operations…'};
-		let chinese={tagline: '描述修改即可執行本地操作，也可選擇生成影像', help: '使用說明', target: '目前媒體 (Target Media)', conversation: '對話', download: '下載', empty: '尚未選擇媒體。請載入圖片，或在對話中描述構想。', media: '＋ 媒體庫', camera: '拍照', generating: 'AI 正在修訂影像…', history: '媒體版本', copyPrompt: '複製提示詞', generate: '依提示詞生成影像', ratio: '輸出比例', original: '原圖', input: '討論構想、畫矩形、查看程式碼，或編寫本地功能…', send: '傳送', stop: '停止', about: '可討論影像修改或要求本地操作。只有按下生成按鈕才會產生新影像，也可以要求查閱及擴充本次執行的程式碼。', close: '關閉', confirmedChanges: '生成提示詞', you: '您', agent: 'AI 助理 (Agent)', promptDraft: '整合提示詞草稿：', copy: '複製', thinking: '正在理解要求並處理本地操作…'};
-		return ('zh'===_(this).m_view.GetLocale()?chinese:english)[key]||english[key]||key;
+		return DisplayText.GetText(_(this).m_view.GetLocale(), key);
 	};
 	_['public'].Localize=function () { _(this).m_view.Localize((key)=>this.Text(key)); };
 
@@ -69,6 +67,11 @@ var MainRenderer=Function.extend(React.Component, function () {
 		};
 		$this.Update();
 		$this.ArrangeModals();
+		DisplayText.GetInstance($this.m_view.GetLocale()).then(()=>{
+			if (!$this.m_view.GetRoot()) return;
+			this.forceUpdate();
+			this.Update();
+		});
 		$this.m_agent.SetReady($this.m_agent.Welcome(navigator.language));
 	};
 

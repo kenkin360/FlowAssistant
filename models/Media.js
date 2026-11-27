@@ -38,35 +38,4 @@ var Media=Function.extend(Object, function () {
 	_['public'].Title=null;
 	_['public'].MediaId=null;
 
-	var Image=Function.extend(Media, function () {
-		var _=this(Image);
-		Image=_[Image];
-		function Image(value={}) {
-			_['base'].apply(this, arguments);
-			this.Width=value.width||null;
-			this.Height=value.height||null;
-		}
-		_['public'].Width=null;
-		_['public'].Height=null;
-		_['public'].toJSON=function () {
-			return {id: this.Id, mimeType: this.MimeType, title: this.Title, mediaId: this.MediaId, width: this.Width, height: this.Height};
-		};
-	});
-
-	var Video=Function.extend(Media, function () {
-		var _=this(Video);
-		Video=_[Video];
-		function Video(value={}) {
-			_['base'].apply(this, arguments);
-			this.DurationSeconds=value.durationSeconds||null;
-			this.Resolution=value.resolution||null;
-		}
-		_['public'].DurationSeconds=null;
-		_['public'].Resolution=null;
-		_['public'].toJSON=function () {
-			return {id: this.Id, mimeType: this.MimeType, title: this.Title, mediaId: this.MediaId, durationSeconds: this.DurationSeconds, resolution: this.Resolution};
-		};
-	});
-	Media.Image=Image;
-	Media.Video=Video;
 });

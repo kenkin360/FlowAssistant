@@ -31,13 +31,20 @@ var View=Function.extend(Object, function () {
 			_(this).m_urls.delete(media);
 		}
 	};
-	_['public'].GetLocale=function () { return (navigator.languages||[]).some((language)=>/^zh\b/i.test(language))||/^zh\b/i.test(navigator.language||'')?'zh':'en'; };
+	_['public'].GetLocale=function () {
+		let locale=navigator.language||'en';
+		return /^en(?:-|$)/i.test(locale)?'en':locale;
+	};
 	_['public'].Node=function (role) { return _(this).m_root?.querySelector(`[data-role="${role}"]`); };
 	_['public'].Localize=function (text) {
 		let root=_(this).m_root;
 		if (!root) return;
-		for (let node of root.querySelectorAll('[data-i18n]')) node.textContent=text(node.dataset.i18n);
-		for (let node of root.querySelectorAll('[data-i18n-placeholder]')) node.placeholder=text(node.dataset.i18nPlaceholder);
+		for (let node of root.querySelectorAll('[data-i18n]')) {
+			if (Object.prototype.hasOwnProperty.call(DisplayText.Default.Entries, node.dataset.i18n)) node.textContent=text(node.dataset.i18n);
+		}
+		for (let node of root.querySelectorAll('[data-i18n-placeholder]')) {
+			if (Object.prototype.hasOwnProperty.call(DisplayText.Default.Entries, node.dataset.i18nPlaceholder)) node.placeholder=text(node.dataset.i18nPlaceholder);
+		}
 	};
 	_['public'].Mount=function (name, element, slot, slots) {
 		let target=_(this).m_root?.querySelector(`[data-slot="${slot}"]`);
@@ -84,7 +91,7 @@ var View=Function.extend(Object, function () {
 		this.Localize(text);
 		new HtmlNode(root.querySelector('[data-action="send"]')).SetText(consulting?text('stop'):text('send'));
 		node('pending').SetStyle('display', !!media.GetPrompt()?'block':'none');
-		node('pending-count').SetText(text('confirmedChanges'));
+		node('pending-count').SetText(text('promptDraft'));
 		node('pending-list').SetStyle('display', 'none');
 		node('pending-prompt').SetText(media.GetPrompt()||'');
 		let ratios=node('ratios').GetElement();

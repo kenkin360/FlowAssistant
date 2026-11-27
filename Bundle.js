@@ -37,6 +37,7 @@ var Bundle=Function.extend(Function, function () {
 
 	Bundle.Config=[
 		['MainRenderer', Bundle.CustomAgent('MainRenderer.js')]
+		, ['DisplayText', Bundle.CustomAgent('DisplayText.js')]
 		, ['Agent', Bundle.CustomAgent('Agent.js')]
 		, ['AppActions', Bundle.CustomAgent('AppActions.js')]
 		, ['ActionExecutor', Bundle.CustomAgent('ActionExecutor.js')]
@@ -48,7 +49,10 @@ var Bundle=Function.extend(Function, function () {
 		, ['VideoService', Bundle.CustomAgent('VideoService.js')]
 		, ['MediaOperations', Bundle.CustomAgent('MediaOperations.js')]
 		, ['MediaWorkspace', Bundle.CustomAgent('models/MediaWorkspace.js')]
+		, ['GenerationDraft', Bundle.CustomAgent('models/GenerationDraft.js')]
 		, ['Message', Bundle.CustomAgent('models/Message.js')]
+		, ['ImageMedia', Bundle.CustomAgent('models/ImageMedia.js')]
+		, ['VideoMedia', Bundle.CustomAgent('models/VideoMedia.js')]
 		, ['Media', Bundle.CustomAgent('models/Media.js')]
 		, ['View', Bundle.CustomAgent('View.js')]
 		, ['MessageList', Bundle.CustomAgent('MessageList.js')]
