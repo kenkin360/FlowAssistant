@@ -41,8 +41,8 @@ var Modules=Function.extend(Object, function () {
 		let $this=_(this);
 		if (!$this.m_startup) {
 			$this.m_startup=(async ()=>{
-				await this.LoadModule(Bundle.CustomAgent('DrawRectangle.js'), {name: 'DrawRectangle', Type: Resource.Module, track: false});
-				await this.LoadModule(Bundle.CustomAgent('Upscale.js'), {name: 'Upscale', Type: Resource.Module, track: false});
+				await this.LoadModule(Bundle.CustomAgent('extensions/DrawRectangle.js'), {name: 'DrawRectangle', Type: Resource.Module, track: false});
+				await this.LoadModule(Bundle.CustomAgent('extensions/Upscale.js'), {name: 'Upscale', Type: Resource.Module, track: false});
 			})().catch((error)=>{
 				$this.m_startup=null;
 				throw error;

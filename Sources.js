@@ -4,7 +4,7 @@ var Sources=Function.extend(Object, function () {
 	function Sources(entries, hostSourceUrl) {
 		_['base'].apply(this, arguments);
 		let $this=_(this);
-		$this.m_entries=[...(entries||[]), ['DrawRectangle', Bundle.CustomAgent('DrawRectangle.js')], ['Upscale', Bundle.CustomAgent('Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember));
+		$this.m_entries=[...(entries||[]), ['DrawRectangle', Bundle.CustomAgent('extensions/DrawRectangle.js')], ['Upscale', Bundle.CustomAgent('extensions/Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember));
 		$this.m_compiled=new Map();
 		$this.m_error=null;
 		try { $this.m_compiled=$this.Parse(hostSourceUrl); }

@@ -21,7 +21,7 @@ var Upscale=Function.extend(Object, function () {
 	_['private'].GetWeights=async function () {
 		let $this=_(this);
 		if (!$this.m_weights) {
-			$this.m_weights=fetch('https://esm.sh/gh/sb2702/websr@v0.1.0/weights/realesrgan/x4v3.bin?raw').then(async function(response) {
+			$this.m_weights=fetch('https://esm.sh/gh/sb2702/websr/weights/realesrgan/x4v3.bin?raw').then(async function(response) {
 				if (!response.ok) throw new Error('Failed to load weights: '+response.status);
 				return response.arrayBuffer();
 			});
@@ -57,7 +57,7 @@ var Upscale=Function.extend(Object, function () {
 			});
 		}
 		else {
-			let {default: WebSRWebGL}=await import('https://esm.sh/@websr/webgl@0.1.0?standalone');
+			let {default: WebSRWebGL}=await import('https://esm.sh/@websr/webgl?standalone');
 			let gl=WebSRWebGL.initWebGL(canvas);
 			if (!gl||!WebSRWebGL.supportsNetwork('realesrgan/x4v3', gl)) {
 				throw new Error('Real-ESRGAN requires WebGPU or a capable WebGL2 device.');
