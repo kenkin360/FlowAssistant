@@ -6,6 +6,8 @@ var Media=Function.extend(Object, function () {
 		_['base'].apply(this, arguments);
 		this.Id=value.id||'media_'+Date.now()+'_'+Math.random().toString(36).slice(2);
 		this.MimeType=value.mimeType||'application/octet-stream';
+		this.Title=value.title||null;
+		this.MediaId=value.mediaId||null;
 		if (value.data instanceof Blob) this.Data=value.data;
 		else if (value.base64) {
 			let binary=atob(value.base64);
@@ -29,10 +31,12 @@ var Media=Function.extend(Object, function () {
 		for (let i=0; i<bytes.length; i+=32768) parts.push(String.fromCharCode(...bytes.subarray(i, i+32768)));
 		return btoa(parts.join(''));
 	};
-	_['public'].toJSON=function () { return {id: this.Id, mimeType: this.MimeType}; };
+	_['public'].toJSON=function () { return {id: this.Id, mimeType: this.MimeType, title: this.Title, mediaId: this.MediaId}; };
 	_['public'].Id=null;
 	_['public'].MimeType=null;
 	_['public'].Data=null;
+	_['public'].Title=null;
+	_['public'].MediaId=null;
 
 	var Image=Function.extend(Media, function () {
 		var _=this(Image);
@@ -45,7 +49,7 @@ var Media=Function.extend(Object, function () {
 		_['public'].Width=null;
 		_['public'].Height=null;
 		_['public'].toJSON=function () {
-			return {id: this.Id, mimeType: this.MimeType, width: this.Width, height: this.Height};
+			return {id: this.Id, mimeType: this.MimeType, title: this.Title, mediaId: this.MediaId, width: this.Width, height: this.Height};
 		};
 	});
 
@@ -60,7 +64,7 @@ var Media=Function.extend(Object, function () {
 		_['public'].DurationSeconds=null;
 		_['public'].Resolution=null;
 		_['public'].toJSON=function () {
-			return {id: this.Id, mimeType: this.MimeType, durationSeconds: this.DurationSeconds, resolution: this.Resolution};
+			return {id: this.Id, mimeType: this.MimeType, title: this.Title, mediaId: this.MediaId, durationSeconds: this.DurationSeconds, resolution: this.Resolution};
 		};
 	});
 	Media.Image=Image;

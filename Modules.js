@@ -35,7 +35,7 @@ var Modules=Function.extend(Object, function () {
 		else delete this.GetRuntime().Modules[installation.Name];
 		$this.m_sources.SetInstalled(installation.Name, installation.PreviousSource);
 		$this.m_versions.pop();
-		return `Restored the previous module definition and registration. ${$this.m_versions.length} earlier installations remain. UI changes made by the module require its own cleanup.`;
+		return `Restored the previous module definition and registration. ${$this.m_versions.length} earlier installations remain.`;
 	};
 	_['public'].Initialize=function () {
 		let $this=_(this);

@@ -12,7 +12,7 @@ var App=Function.extend(React.Component, function () {
 	function App(props) {
 		_['base'].apply(this, arguments);
 		let $this=_(this);
-		$this.m_agent=null;
+		$this.m_renderer=null;
 		$this.m_error=null;
 		$this.m_loading=false;
 		$this.m_progress={File: '', Completed: 0, Total: Bundle.Config.length};
@@ -36,7 +36,7 @@ var App=Function.extend(React.Component, function () {
 			component.forceUpdate();
 		}).then((loaded)=>{
 			$this.m_loading=false;
-			$this.m_agent=loaded.CustomAgent;
+			$this.m_renderer=loaded.MainRenderer;
 			component.forceUpdate();
 		}, (error)=>{
 			$this.m_loading=false;
@@ -48,13 +48,13 @@ var App=Function.extend(React.Component, function () {
 
 	_['public'].render=function () {
 		let $this=_(this);
-		if ($this.m_agent) return React.createElement($this.m_agent, {...this.props, HostSourceUrl: import.meta.url, SourceFiles: Bundle.Config});
+		if ($this.m_renderer) return React.createElement($this.m_renderer, {...this.props, HostSourceUrl: import.meta.url, SourceFiles: Bundle.Config});
 		let progress=$this.m_progress;
 		let percent=progress.Total?Math.round(progress.Completed*100/progress.Total):0;
 		let chinese=/^zh\b/i.test(navigator.language||'');
 		return React.createElement('div', {style: {position: 'fixed', inset: 0, display: 'grid', placeItems: 'center', background: '#090e19', color: '#e5e7eb', fontFamily: 'system-ui, sans-serif'}},
 			React.createElement('div', {style: {width: 360, maxWidth: '85vw'}},
-				React.createElement('h2', null, 'CustomAgent'),
+				React.createElement('h2', null, 'FlowAssistant'),
 				React.createElement('div', {style: {fontSize: 12, marginBottom: 8}}, $this.m_error?String($this.m_error.message||$this.m_error):progress.File||(chinese?'啟動中…':'Starting…')),
 				React.createElement('div', {role: 'progressbar', 'aria-valuenow': progress.Completed, 'aria-valuemin': 0, 'aria-valuemax': progress.Total, style: {height: 5, background: '#263248', borderRadius: 5}},
 					React.createElement('div', {style: {height: '100%', width: percent+'%', background: '#6959ff', borderRadius: 5}})),
@@ -62,7 +62,7 @@ var App=Function.extend(React.Component, function () {
 				$this.m_error&&React.createElement('button', {type: 'button', onClick: $this.m_reload, style: {marginTop: 12, padding: '7px 14px'}}, chinese?'重新載入':'Reload')));
 	};
 
-	_['protected'].m_agent=null;
+	_['protected'].m_renderer=null;
 	_['protected'].m_error=null;
 	_['protected'].m_loading=false;
 	_['protected'].m_progress=null;
