@@ -14,14 +14,20 @@ var ConversationOpening=Function.extend(Object, function () {
 		try { await methods.Modules.Initialize(); }
 		catch (error) { console.error('Module startup failed:', error); setupError=error?.message||String(error); }
 		try {
-			let runtime=methods.Modules.InspectRuntime({}).message;
+			let runtime=methods.Modules.InspectRuntime({});
 			let prompt=`
 請根據實際檢查結果，作為對話參與者發出第一則訊息。
 啟動結果：${setupError||'success'}。
 瀏覽器語系：${language||'en'}
 `;
-			let response=await assistant.RequestResponse(prompt, {systemInstruction: assistant.GetInstruction(runtime, methods.GetInstruction())});
-			if (!assistant.GetMessages().length) assistant.Reply(response.reply);
+			let options={systemInstruction: assistant.GetInstruction(runtime, methods.GetInstruction())};
+			let previous=assistant.GetMessages().length;
+			let request=new AssistantRequest(prompt, options);
+			await assistant.Consult((completed)=>methods.GetContinuation(request, completed), null, (response, result)=>{
+				if (!previous&&!assistant.GetMessages().slice(previous).some((entry)=>entry.Sender==='user')) {
+					assistant.Reply(response, methods.GetAttachment(result));
+				}
+			});
 		}
 		catch (error) { console.error('Conversation opening failed:', error); assistant.ReportError(error); }
 	};

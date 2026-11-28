@@ -10,112 +10,97 @@ var ImageService=Function.extend(Object, function () {
 	}
 	ImageService.ModelDisplayName='🍌 Nano Banana 2.1';
 	_['public'].GetWorkspace=function () { return _(this).m_workspace; };
-	_['public'].IsGenerating=function () { return _(this).m_generating; };
-	_['public'].GetInstruction=function () {
-		return '影像生成使用 MethodName: ImageService.Generate，Arguments 為 {prompt,aspectRatio}；可選 useCurrentImage: true 以目前選取的影像作參考。若有待使用者確認的影像生成提示詞，回覆同一 JSON 物件的 suggestedPrompt、aspectRatio。';
-	};
-	_['public'].GetRequestContext=async function () {
+	_['public'].GetLegacyModuleInput=async function () {
 		let workspace=this.GetWorkspace();
 		let selected=workspace.GetActiveMedia();
-		let artifact=workspace.GetCurrentMedia();
-		let info=selected instanceof Media.Image?await _(this).GetDimensions(await workspace.GetLegacyMedia(selected)):null;
-		let dimensions=info?`${info.width} × ${info.height} (${selected.MimeType})`:'無';
-		let text=selected||artifact?`
-目前影像：${dimensions}；目前產物：${JSON.stringify(workspace.Describe(artifact))}
-`:'';
-		let images=[];
-		if (selected instanceof Media.Image) {
-			let image=await workspace.GetLegacyMedia(selected);
-			images=[{base64: image.base64, mimeType: image.mimeType}];
-		}
-		return {Text: text, Images: images};
+		let image=selected instanceof Media.Image?await workspace.GetLegacyMedia(selected):null;
+		let current=workspace.GetCurrentMedia();
+		let artifact=current===selected&&image?image:await workspace.GetLegacyMedia(current);
+		return {image, artifact};
+	};
+	_['public'].IsGenerating=function () { return _(this).m_generating; };
+	_['public'].GetInstruction=function () {
+		return '影像生成使用 MethodName: ImageService.Generate，Arguments 為 {prompt,aspectRatio}；可選 useCurrentImage: true 以目前選取的影像作參考。';
+	};
+	_['public'].GetRequestImages=async function (attachment) {
+		if (!(attachment instanceof Media.Image)) return [];
+		return [{base64: await attachment.ToBase64(), mimeType: attachment.MimeType}];
 	};
 	_['public'].SelectCurrent=async function () {
 		try {
 			let image=await this.Select();
 			if (!image) return;
 			this.GetWorkspace().Add(image);
-			await _(this).m_notify('Media selected', {Title: image.title, Width: image.width, Height: image.height}, image);
-			return {message: `
-Media selected: ${image.title}
-`, artifact: this.GetWorkspace().GetActiveMedia()};
+			await _(this).m_notify('Media selected', image);
+			return image;
 		}
-		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', error?.message||String(error)); }
 	};
 	_['public'].CaptureCurrent=async function () {
 		try {
 			let image=await this.Capture();
 			if (!image) return;
 			this.GetWorkspace().Add(image);
-			await _(this).m_notify('Camera image captured', {Title: image.title, Width: image.width, Height: image.height}, image);
-			return {message: `
-Camera image captured: ${image.title}
-`, artifact: this.GetWorkspace().GetActiveMedia()};
+			await _(this).m_notify('Camera image captured', image);
+			return image;
 		}
-		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', error?.message||String(error)); }
 	};
-	_['public'].GenerateCurrent=async function (options={}) {
+	_['public'].GenerateCurrent=async function (options) {
 		let $this=_(this);
 		let workspace=this.GetWorkspace();
-		let text=String(options.prompt??'').trim();
+		let text=String(options.Prompt??'').trim();
 		if (!text||$this.m_generating) return;
 		$this.m_generating=true;
 		workspace.NotifyChanged();
 		try {
-			let selected=workspace.GetActiveMedia();
-			let result=await this.Generate({prompt: text, aspectRatio: options.aspectRatio, useCurrentImage: selected instanceof Media.Image});
-			let image=result.image;
+			let image=await this.Generate(options);
 			workspace.Add(image);
-			await $this.m_notify('Image generation completed', {Title: image.title, Prompt: text, Width: image.width, Height: image.height}, image);
-			return {message: result.message, artifact: workspace.GetActiveMedia()};
+			await $this.m_notify(`Image generation completed: ${text}`, image);
+			return image;
 		}
-		catch (error) { console.error('Image generation failed:', error); await $this.m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image generation failed:', error); await $this.m_notify('Operation failed', error?.message||String(error)); }
 		finally { $this.m_generating=false; workspace.NotifyChanged(); }
 	};
 	_['public'].DownloadCurrent=async function () {
 		try {
 			let workspace=this.GetWorkspace();
 			let selected=workspace.GetActiveMedia();
-			if (selected instanceof Media.Image) await this.Download(await workspace.GetLegacyMedia(selected));
-			return {message: selected instanceof Media.Image?'Image downloaded.':'No image selected.'};
+			if (selected instanceof Media.Image) return await this.Download(await workspace.GetLegacyMedia(selected));
+			return null;
 		}
-		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', error?.message||String(error)); }
 	};
 
 	_['protected'].GetDimensions=async function (image) {
 		if (Number.isInteger(image?.width)&&Number.isInteger(image?.height)&&image.width>0&&image.height>0) {
-			return {width: image.width, height: image.height};
+			return new Dimensions(image.width, image.height);
 		}
 		let source=new Image();
 		source.src=`data:${image.mimeType};base64,${image.base64}`;
 		await source.decode();
 		if (!source.naturalWidth||!source.naturalHeight) throw new Error('Unable to read image dimensions.');
-		return {width: source.naturalWidth, height: source.naturalHeight};
+		return new Dimensions(source.naturalWidth, source.naturalHeight);
 	};
 
-	_['protected'].GetAspectRatio=function ({width, height}) {
-		let a=width;
-		let b=height;
+	_['protected'].GetAspectRatio=function (dimensions) {
+		let a=dimensions.Width;
+		let b=dimensions.Height;
 		while (b) [a, b]=[b, a%b];
-		return `${width/a}:${height/a}`;
+		return `${dimensions.Width/a}:${dimensions.Height/a}`;
 	};
 
-	_['public'].ReadMethodResult=async function (value, image, methodName) {
+	_['public'].ReadImageOutput=async function (value, image, methodName) {
 		let output=value&&'object'===typeof value&&'image' in value?value.image:value;
-		if (!output||'string'!==typeof output.base64||!/^image\/(png|jpeg|webp)$/.test(output.mimeType)) return null;
+		if (!output||'string'!==typeof output.base64||!/^image\//.test(output.mimeType)) return null;
 		let dimensions=await _(this).GetDimensions(output);
 		let original=image||{};
-		return {
-			...original, id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+		return new Media.Image({
+			id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
 			, base64: output.base64, mimeType: output.mimeType, mediaId: undefined
-			, ...dimensions
-			, prompt: `
-本地方法修改：${methodName}
-`
-			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-			, aspectRatio: _(this).GetAspectRatio(dimensions)
+			, width: dimensions.Width, height: dimensions.Height
 			, title: output.title||`${original.title||'Image'} · ${methodName}`
-		};
+		});
 	};
 
 	_['protected'].GetContent=async function (media) {
@@ -133,17 +118,14 @@ Camera image captured: ${image.title}
 		if (!selected) return null;
 		selected=await _(this).GetContent(selected);
 		let dimensions=await _(this).GetDimensions(selected);
-		return {
+		return new Media.Image({
 			id: `img_${Date.now()}`
 			, base64: selected.base64
 			, mimeType: selected.mimeType
 			, mediaId: selected.mediaId
-			, prompt: '從媒體庫匯入的原始影像'
-			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-			, aspectRatio: _(this).GetAspectRatio(dimensions)
-			, ...dimensions
+			, width: dimensions.Width, height: dimensions.Height
 			, title: selected.name||'匯入影像'
-		};
+		});
 	};
 
 	_['public'].Capture=async function () {
@@ -156,31 +138,30 @@ Camera image captured: ${image.title}
 			, mimeType: 'image/png'
 			, name: `Camera Capture ${new Date().toLocaleTimeString()}`
 		});
-		return {
+		return new Media.Image({
 			id: `cam_${Date.now()}`
 			, base64: photo.base64
 			, mimeType: photo.mimeType||'image/png'
 			, mediaId: upload.mediaId
-			, prompt: '相機即時拍攝'
-			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-			, aspectRatio: _(this).GetAspectRatio(dimensions)
-			, ...dimensions
+			, width: dimensions.Width, height: dimensions.Height
 			, title: '相機拍照'
-		};
+		});
 	};
 
-	_['public'].Generate=async function (options={}) {
+	_['public'].Generate=async function (options) {
 		let flow=Flow;
-		let {prompt, aspectRatio: ratio, useCurrentImage=false}=options;
+		let request=options instanceof ImageGenerationRequest?options:new ImageGenerationRequest(options?.prompt, options?.aspectRatio, options?.useCurrentImage);
+		let prompt=request.Prompt;
+		let ratio=request.AspectRatio;
+		let useCurrentImage=request.UseCurrentImage;
 		if ('string'!==typeof prompt||!prompt.trim()) throw new Error('Provide an image prompt.');
 		let workspace=this.GetWorkspace();
 		let selected=useCurrentImage?workspace?.GetActiveMedia():null;
 		if (useCurrentImage&&!(selected instanceof Media.Image)) throw new Error('No current image is available.');
 		let image=selected?await workspace.GetLegacyMedia(selected):null;
 		let index=(workspace?.History.length||0)+1;
-		ratio??='original';
 		let mediaId=image?.mediaId;
-		let aspectRatio='original'===ratio?(image?_(this).GetAspectRatio(await _(this).GetDimensions(image)):undefined):ratio;
+		let aspectRatio=ratio==null||'original'===ratio?(image?_(this).GetAspectRatio(await _(this).GetDimensions(image)):undefined):ratio;
 		if (image&&!mediaId) {
 			let upload=await flow.upload({base64: image.base64, mimeType: image.mimeType, name: image.title});
 			mediaId=upload.mediaId;
@@ -193,22 +174,14 @@ Camera image captured: ${image.title}
 		});
 		result=await _(this).GetContent(result);
 		let dimensions=await _(this).GetDimensions(result);
-		return {
-			message: `
-Image generated and saved to Flow Assets (${result.mediaId}).
-`
-			, image: {
+		return new Media.Image({
 				id: `ver_${Date.now()}`
 				, base64: result.base64
 				, mimeType: result.mimeType
 				, mediaId: result.mediaId
-				, prompt
-				, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-				, aspectRatio: _(this).GetAspectRatio(dimensions)
-				, ...dimensions
+				, width: dimensions.Width, height: dimensions.Height
 				, title: `修改版本 #${index}`
-			}
-		};
+			});
 	};
 
 	_['public'].Download=function (image) {

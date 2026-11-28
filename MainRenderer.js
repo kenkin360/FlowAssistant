@@ -34,13 +34,13 @@ var MainRenderer=Function.extend(React.Component, function () {
 	};
 	_['public'].Localize=function () { _(this).m_view.Localize((key)=>this.Text(key)); };
 
-	_['public'].Mount=function (name, element, slot='header') { return _(this).m_view.Mount(name, element, slot, this.Slots); };
+	_['public'].Mount=function (name, element, slot) { return _(this).m_view.Mount(name, element, slot, this.Slots); };
 	_['public'].Unmount=function (name) { _(this).m_view.Unmount(name); };
 	_['public'].Mounted=function () { return _(this).m_view.Mounted(); };
 
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
-		$this.m_unsubscribe=$this.m_assistant.Subscribe((details)=>{ $this.m_view.ApplySuggestions(details); $this.Update(); });
+		$this.m_unsubscribe=$this.m_assistant.Subscribe(()=>this.Update());
 		let root=$this.m_view.GetRoot();
 		root.onclick=(event)=>{ $this.HandleClick(event).catch((error)=>$this.ReportError(error)); };
 		root.onkeydown=(event)=>{ $this.HandleKeyDown(event).catch((error)=>$this.ReportError(error)); };
@@ -74,10 +74,10 @@ var MainRenderer=Function.extend(React.Component, function () {
 			case 'select': await imageService.SelectCurrent(); break;
 			case 'camera': await imageService.CaptureCurrent(); break;
 			case 'download':
-				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent(workspace);
+				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent();
 				else await imageService.DownloadCurrent();
 				break;
-			case 'generate': await imageService.GenerateCurrent({prompt: $this.m_view.GetPrompt(), aspectRatio: $this.m_view.GetRatio()}); break;
+			case 'generate': await imageService.GenerateCurrent(new ImageGenerationRequest($this.m_view.GetPrompt(), $this.m_view.GetRatio(), workspace.GetActiveMedia() instanceof Media.Image)); break;
 			case 'info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'flex'); break;
 			case 'close-info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'none'); break;
 			case 'copy-prompt': await navigator.clipboard.writeText($this.m_view.GetPrompt()); break;
@@ -151,7 +151,8 @@ var MainRenderer=Function.extend(React.Component, function () {
 		let input=this.Node('input');
 		let value=input?.value;
 		if (input) input.value='';
-		return $this.m_assistant.Send(value);
+		let attachment=$this.m_assistant.GetMethods().ImageService.GetWorkspace().GetActiveMedia();
+		return $this.m_assistant.Send(value, attachment);
 	};
 
 	_['protected'].m_assistant=null;

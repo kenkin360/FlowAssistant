@@ -57,6 +57,11 @@ var Bundle=Function.extend(Function, function () {
 		, ['Installation', Bundle.SourceUrl('models/Installation.js')]
 		, ['Sources', Bundle.SourceUrl('Sources.js')]
 		, ['Source', Bundle.SourceUrl('models/Source.js')]
+		, ['AssistantResponse', Bundle.SourceUrl('models/AssistantResponse.js')]
+		, ['AssistantRequest', Bundle.SourceUrl('models/AssistantRequest.js')]
+		, ['Response', Bundle.SourceUrl('models/Response.js')]
+		, ['Dimensions', Bundle.SourceUrl('models/Dimensions.js')]
+		, ['ImageGenerationRequest', Bundle.SourceUrl('models/ImageGenerationRequest.js')]
 		, ['cv', 'https://esm.sh/gh/TechStark/opencv-js/dist/opencv.js?raw', 'Mat']
 		, ['agentTemplate', Bundle.SourceUrl('views/agent.html.js')]
 	];
