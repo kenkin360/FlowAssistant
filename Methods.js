@@ -50,7 +50,11 @@ ${completed.map(JSON.stringify).join('\n')}
 `, request.Options);
 	};
 	_['public'].GetAttachment=function (value) {
-		return value instanceof Media.Image||value instanceof Media.Video?value:null;
+		if (value instanceof Media.Image||value instanceof Media.Video) return value;
+		let media=value?.artifact;
+		if (media instanceof Media.Image||media instanceof Media.Video) return media;
+		media=value?.image;
+		return media instanceof Media.Image||media instanceof Media.Video?media:null;
 	};
 	_['public'].Invoke=async function (methodName, args) {
 		if ('string'!==typeof methodName||!/^[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*$/.test(methodName)||methodName.endsWith('.constructor')) {
@@ -69,7 +73,8 @@ Method not found: ${methodName}
 		await this.Modules.GetStartup();
 		let input=local?undefined:await this.ImageService.GetLegacyModuleInput();
 		let value=await method.call(target, args, input);
-		let output=value instanceof Media?value:value?.artifact??value?.image??value;
+		let member=value?.artifact!=null?'artifact':value?.image!=null?'image':null;
+		let output=member?value[member]:value;
 		if (output&&'object'===typeof output&&!(output instanceof Media)&&output.mediaId&&output.mimeType&&!output.data&&!output.base64) {
 			let content=await Flow.media.getBase64({mediaId: output.mediaId});
 			output={...output, ...content, mediaId: output.mediaId};
@@ -82,6 +87,10 @@ Method not found: ${methodName}
 			}
 			if (output) {
 				this.ImageService.GetWorkspace().Add(output);
+				if (member) {
+					value[member]=output;
+					return value;
+				}
 				return output;
 			}
 		}
