@@ -10,6 +10,7 @@ var Assistant=Function.extend(Object, function () {
 		let request=prompt;
 		while (!signal?.aborted) {
 			let raw=(await Flow.generate.text(request, options))?.text;
+			console.log('Assistant response:', raw);
 			if (signal?.aborted) return null;
 			let invalid=null;
 			let value;
@@ -48,7 +49,7 @@ ${String(raw??'')}
 				complete?.(response, lastResult);
 				return;
 			}
-			if (response.Reply.trim()) reply(new Response(response.Reply));
+			if (response.Reply.trim()) reply(response);
 			if (turn?.signal.aborted) return null;
 			try {
 				lastResult=await $this.m_methods.Invoke(response.MethodName, response.Arguments, lastResult);

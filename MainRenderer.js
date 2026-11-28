@@ -9,6 +9,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 			$this.m_mounted=new Map();
 			$this.m_mediaRenderer=new MediaRenderer();
 			$this.m_conversationRenderer=new ConversationRenderer();
+			$this.m_debugRenderer=null;
 			$this.m_mediator=new ConversationMediator();
 			let workspace=new MediaWorkspace(()=>$this.Update());
 			let assistant;
@@ -97,6 +98,11 @@ var MainRenderer=Function.extend(React.Component, function () {
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
 		$this.m_unsubscribe=$this.m_mediator.Subscribe(()=>$this.Update());
+		let debugButton=document.createElement('button');
+		debugButton.type='button';
+		debugButton.dataset.control='debug-window';
+		debugButton.textContent='Debug';
+		this.Mount('Debug', debugButton, 'header');
 		let root=$this.m_root;
 		root.onclick=(event)=>{ $this.HandleClick(event).catch((error)=>$this.ReportError(error)); };
 		root.onkeydown=(event)=>{ $this.HandleKeyDown(event).catch((error)=>$this.ReportError(error)); };
@@ -130,6 +136,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 			return;
 		}
 		switch (target.dataset.control) {
+			case 'debug-window': $this.m_debugRenderer?.Open(); break;
 			case 'media-window': new HtmlNode(this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
 			case 'chat-window': new HtmlNode(this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
 			case 'info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'flex'); break;
@@ -203,7 +210,8 @@ var MainRenderer=Function.extend(React.Component, function () {
 				, onFocus: ()=>this.setState({Focused: name})
 				, onResetPosition: ()=>$this.ArrangeModals(name)
 				, onClose: ()=>new HtmlNode($this.Node(name==='Media'?'media-window':'chat-window')).SetStyle('display', 'none')
-			}, React.createElement('div', {className: 'ca-modal-content', dangerouslySetInnerHTML: $this.m_templates[name]})))));
+			}, React.createElement('div', {className: 'ca-modal-content', dangerouslySetInnerHTML: $this.m_templates[name]})))),
+			React.createElement(DebugRenderer, {ref: (renderer)=>{ $this.m_debugRenderer=renderer; }, Capture: ConsoleCapture.Default}));
 	};
 
 	_['protected'].m_mediator=null;
@@ -212,6 +220,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 	_['protected'].m_mounted=null;
 	_['protected'].m_mediaRenderer=null;
 	_['protected'].m_conversationRenderer=null;
+	_['protected'].m_debugRenderer=null;
 	_['protected'].m_unsubscribe=null;
 	_['protected'].m_templates=null;
 	_['protected'].m_modals=null;

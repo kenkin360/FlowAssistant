@@ -39,6 +39,7 @@ var Bundle=Function.extend(Function, function () {
 		['MainRenderer', Bundle.SourceUrl('MainRenderer.js')]
 		, ['MediaRenderer', Bundle.SourceUrl('MediaRenderer.js')]
 		, ['ConversationRenderer', Bundle.SourceUrl('ConversationRenderer.js')]
+		, ['DebugRenderer', Bundle.SourceUrl('DebugRenderer.js')]
 		, ['ConversationMediator', Bundle.SourceUrl('ConversationMediator.js')]
 		, ['DisplayText', Bundle.SourceUrl('DisplayText.js')]
 		, ['Assistant', Bundle.SourceUrl('Assistant.js')]
@@ -59,12 +60,12 @@ var Bundle=Function.extend(Function, function () {
 		, ['ImageGenerationRequest', Bundle.SourceUrl('models/ImageGenerationRequest.js')]
 		, ['AssistantResponse', Bundle.SourceUrl('models/AssistantResponse.js')]
 		, ['AssistantRequest', Bundle.SourceUrl('models/AssistantRequest.js')]
-		, ['Response', Bundle.SourceUrl('models/Response.js')]
 		, ['Dimensions', Bundle.SourceUrl('models/Dimensions.js')]
 		, ['cv', 'https://esm.sh/gh/TechStark/opencv-js/dist/opencv.js?raw', 'Mat']
 		, ['conversationTemplate', Bundle.SourceUrl('views/conversation.html.js')]
 		, ['mediaTemplate', Bundle.SourceUrl('views/media.html.js')]
 		, ['mainTemplate', Bundle.SourceUrl('views/main.html.js')]
+		, ['ConsoleCapture', Bundle.SourceUrl('ConsoleCapture.js')]
 	];
 });
 
