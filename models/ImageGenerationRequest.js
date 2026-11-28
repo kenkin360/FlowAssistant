@@ -1,4 +1,4 @@
-var ImageGenerationRequest=Function.extend(Object, function () {
+var ImageGenerationRequest=Function.extend(AssistantRequest, function () {
 	var _=this(ImageGenerationRequest);
 	ImageGenerationRequest=_[ImageGenerationRequest];
 
@@ -9,7 +9,6 @@ var ImageGenerationRequest=Function.extend(Object, function () {
 		this.UseCurrentImage=useCurrentImage===true;
 	}
 
-	_['public'].Prompt='';
 	_['public'].AspectRatio=null;
 	_['public'].UseCurrentImage=false;
 });
