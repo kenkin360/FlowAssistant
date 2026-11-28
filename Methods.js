@@ -5,8 +5,9 @@ var Methods=Function.extend(Object, function () {
 		_['base'].apply(this, arguments);
 		this.Sources=new Sources(sourceUrl);
 		this.Modules=new Modules(this.Sources);
-		this.ImageService=new ImageService(new MediaWorkspace(changed), notify);
-		this.VideoService=new VideoService();
+		let media=new MediaWorkspace(changed);
+		this.ImageService=new ImageService(media, notify);
+		this.VideoService=new VideoService(media);
 		this.Conversation=conversation;
 	}
 	_['public'].GetInstruction=function () {
@@ -56,13 +57,9 @@ Method not found: ${methodName}
 `);
 		}
 		await this.Modules.GetStartup();
-		let needsMedia=!local||owner==='VideoService'&&name==='Generate'&&(args.useCurrentImageAsFirstFrame||args.useCurrentImageAsReference);
-		let media=this.ImageService.GetWorkspace();
-		let selected=media.GetActiveMedia();
-		let image=needsMedia&&selected instanceof Media.Image?await media.GetLegacyMedia(selected):null;
-		let artifact=needsMedia?(media.GetCurrentMedia()===selected&&image?image:await media.GetLegacyMedia(media.GetCurrentMedia())):null;
-		let context=new MethodContext(image, artifact);
-		let value=await method.call(target, args, local?context:context.ToLegacy());
+		let input=local?undefined:await this.ImageService.GetLegacyModuleInput();
+		let value=await method.call(target, args, input);
+		let image=input?.image??null;
 		let output=null;
 		let message=value instanceof MethodResult?value.Message:value?.message;
 		if (value instanceof Media) output=value;
@@ -88,7 +85,7 @@ Method not found: ${methodName}
 			output=await this.ImageService.ReadMethodResult(value, image, methodName);
 		}
 		if (output) {
-			let result=media.Add(output);
+			let result=this.ImageService.GetWorkspace().Add(output);
 			return new MethodResult('string'===typeof message?message:`
 ${methodName} 已完成。
 `, result);

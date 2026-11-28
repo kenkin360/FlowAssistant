@@ -10,6 +10,14 @@ var ImageService=Function.extend(Object, function () {
 	}
 	ImageService.ModelDisplayName='🍌 Nano Banana 2.1';
 	_['public'].GetWorkspace=function () { return _(this).m_workspace; };
+	_['public'].GetLegacyModuleInput=async function () {
+		let workspace=this.GetWorkspace();
+		let selected=workspace.GetActiveMedia();
+		let image=selected instanceof Media.Image?await workspace.GetLegacyMedia(selected):null;
+		let current=workspace.GetCurrentMedia();
+		let artifact=current===selected&&image?image:await workspace.GetLegacyMedia(current);
+		return {image, artifact};
+	};
 	_['public'].IsGenerating=function () { return _(this).m_generating; };
 	_['public'].GetInstruction=function () {
 		return '影像生成使用 MethodName: ImageService.Generate，Arguments 為 {prompt,aspectRatio}；可選 useCurrentImage: true 以目前選取的影像作參考。';

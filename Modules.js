@@ -120,8 +120,8 @@ ${name} is already loaded.
 	_['public'].GetInstruction=function () {
 		return `
 原碼查閱：Sources.ReadCompiledSource、Sources.ReadRemoteSource、Sources.ReadInstalledSource；省略檔名可列出來源。現有模組：Modules.InspectRuntime。
-要編寫新模組時，先以 Sources.ReadRemoteSource 查閱相近模組的實際原碼（例如 name 為 DrawRectangle），依其 Function.extend 宣告、公開方法與靜態 Run 的方式編寫完整 JavaScript。
-使用 Modules.Install，Arguments 為 {"name":"類型名稱","source":"完整 JavaScript 原碼","sourceType":"javascript"}。頂層 var 名稱須與 name 相同，並公開靜態 Run(args, context)。source 是 JSON 字串，其中的換行以 \\n 表示。
+要編寫新模組時，先以 Sources.ReadRemoteSource 查閱相近模組的實際原碼，依其 Function.extend 宣告、公開方法與靜態 Run 的方式編寫完整 JavaScript。
+使用 Modules.Install，Arguments 為 {"name":"類型名稱","source":"完整 JavaScript 原碼","sourceType":"javascript"}。頂層 var 名稱須與 name 相同，並公開靜態 Run(args)。source 是 JSON 字串，其中的換行以 \\n 表示。
 安裝結果會交還給你；安裝完成後呼叫 類型名稱.Run，依執行結果回答。撤銷安裝：Modules.Rollback。清空對話：Conversation.Clear。本輪載入模組：${_(this).DescribeDynamic()}。
 `;
 	};

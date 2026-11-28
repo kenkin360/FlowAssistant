@@ -74,7 +74,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 			case 'select': await imageService.SelectCurrent(); break;
 			case 'camera': await imageService.CaptureCurrent(); break;
 			case 'download':
-				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent(workspace);
+				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent();
 				else await imageService.DownloadCurrent();
 				break;
 			case 'generate': await imageService.GenerateCurrent(new ImageGenerationRequest($this.m_view.GetPrompt(), $this.m_view.GetRatio(), false)); break;
