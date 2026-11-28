@@ -8,7 +8,7 @@ var Sources=Function.extend(Object, function () {
 		$this.m_installed=new Map();
 	}
 	_['protected'].GetCompiled=function () { return _(this).Parse(_(this).m_hostSourceUrl); };
-	_['public'].CompiledNames=function () { try { return [..._(this).GetCompiled().keys()]; } catch (error) { return []; } };
+	_['public'].CompiledNames=function () { try { return [..._(this).GetCompiled().keys()]; } catch (error) { console.error('Compiled source unavailable:', error); return []; } };
 	_['protected'].GetEntries=function () { return [...Bundle.Config, ['DrawRectangle', Bundle.SourceUrl('extensions/DrawRectangle.js')], ['Upscale', Bundle.SourceUrl('extensions/Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember)); };
 	_['protected'].InstalledNames=function () { return [..._(this).m_installed.keys()]; };
 	_['public'].GetInstalled=function (name) { return _(this).m_installed.get(name); };
