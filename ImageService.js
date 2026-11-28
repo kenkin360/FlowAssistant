@@ -18,7 +18,7 @@ var ImageService=Function.extend(Object, function () {
 		let workspace=this.GetWorkspace();
 		let selected=workspace.GetActiveMedia();
 		let artifact=workspace.GetCurrentMedia();
-		let info=selected instanceof Media.Image?await this.GetDimensions(await workspace.GetLegacyMedia(selected)):null;
+		let info=selected instanceof Media.Image?await _(this).GetDimensions(await workspace.GetLegacyMedia(selected)):null;
 		let text=selected||artifact?'目前影像：'+(info?info.width+' × '+info.height+' ('+selected.MimeType+')':'無')+'；目前產物：'+JSON.stringify(workspace.Describe(artifact)):'';
 		let images=[];
 		if (selected instanceof Media.Image) {
@@ -35,7 +35,7 @@ var ImageService=Function.extend(Object, function () {
 			await _(this).m_notify('Media selected', {Title: image.title, Width: image.width, Height: image.height}, image);
 			return {message: 'Media selected: '+image.title, artifact: this.GetWorkspace().GetActiveMedia()};
 		}
-		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
 	_['public'].CaptureCurrent=async function () {
 		try {
@@ -45,7 +45,7 @@ var ImageService=Function.extend(Object, function () {
 			await _(this).m_notify('Camera image captured', {Title: image.title, Width: image.width, Height: image.height}, image);
 			return {message: 'Camera image captured: '+image.title, artifact: this.GetWorkspace().GetActiveMedia()};
 		}
-		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
 	_['public'].GenerateCurrent=async function (options={}) {
 		let $this=_(this);
@@ -62,7 +62,7 @@ var ImageService=Function.extend(Object, function () {
 			await $this.m_notify('Image generation completed', {Title: image.title, Prompt: text, Width: image.width, Height: image.height}, image);
 			return {message: result.message, artifact: workspace.GetActiveMedia()};
 		}
-		catch (error) { await $this.m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image generation failed:', error); await $this.m_notify('Operation failed', {Error: error.message||String(error)}); }
 		finally { $this.m_generating=false; workspace.NotifyChanged(); }
 	};
 	_['public'].DownloadCurrent=async function () {
@@ -72,10 +72,10 @@ var ImageService=Function.extend(Object, function () {
 			if (selected instanceof Media.Image) await this.Download(await workspace.GetLegacyMedia(selected));
 			return {message: selected instanceof Media.Image?'Image downloaded.':'No image selected.'};
 		}
-		catch (error) { await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
 
-	_['public'].GetDimensions=async function (image) {
+	_['protected'].GetDimensions=async function (image) {
 		if (Number.isInteger(image?.width)&&Number.isInteger(image?.height)&&image.width>0&&image.height>0) {
 			return {width: image.width, height: image.height};
 		}
@@ -86,7 +86,7 @@ var ImageService=Function.extend(Object, function () {
 		return {width: source.naturalWidth, height: source.naturalHeight};
 	};
 
-	_['public'].GetAspectRatio=function ({width, height}) {
+	_['protected'].GetAspectRatio=function ({width, height}) {
 		let a=width;
 		let b=height;
 		while (b) [a, b]=[b, a%b];
@@ -96,7 +96,7 @@ var ImageService=Function.extend(Object, function () {
 	_['public'].ReadMethodResult=async function (value, image, methodName) {
 		let output=value&&'object'===typeof value&&'image' in value?value.image:value;
 		if (!output||'string'!==typeof output.base64||!/^image\/(png|jpeg|webp)$/.test(output.mimeType)) return null;
-		let dimensions=await this.GetDimensions(output);
+		let dimensions=await _(this).GetDimensions(output);
 		let original=image||{};
 		return {
 			...original, id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
@@ -104,7 +104,7 @@ var ImageService=Function.extend(Object, function () {
 			, ...dimensions
 			, prompt: `本地方法修改：${methodName}`
 			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-			, aspectRatio: this.GetAspectRatio(dimensions)
+			, aspectRatio: _(this).GetAspectRatio(dimensions)
 			, title: output.title||`${original.title||'Image'} · ${methodName}`
 		};
 	};
@@ -123,7 +123,7 @@ var ImageService=Function.extend(Object, function () {
 		let selected=await Flow.media.select({filter: 'image'});
 		if (!selected) return null;
 		selected=await _(this).GetContent(selected);
-		let dimensions=await this.GetDimensions(selected);
+		let dimensions=await _(this).GetDimensions(selected);
 		return {
 			id: 'img_'+Date.now()
 			, base64: selected.base64
@@ -131,7 +131,7 @@ var ImageService=Function.extend(Object, function () {
 			, mediaId: selected.mediaId
 			, prompt: '從媒體庫匯入的原始影像'
 			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-			, aspectRatio: this.GetAspectRatio(dimensions)
+			, aspectRatio: _(this).GetAspectRatio(dimensions)
 			, ...dimensions
 			, title: selected.name||'匯入影像'
 		};
@@ -141,7 +141,7 @@ var ImageService=Function.extend(Object, function () {
 		let flow=Flow;
 		let photo=await flow.camera.capture({facingMode: 'user'});
 		if (!photo) return null;
-		let dimensions=await this.GetDimensions(photo);
+		let dimensions=await _(this).GetDimensions(photo);
 		let upload=await flow.upload({
 			base64: photo.base64
 			, mimeType: 'image/png'
@@ -154,7 +154,7 @@ var ImageService=Function.extend(Object, function () {
 			, mediaId: upload.mediaId
 			, prompt: '相機即時拍攝'
 			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-			, aspectRatio: this.GetAspectRatio(dimensions)
+			, aspectRatio: _(this).GetAspectRatio(dimensions)
 			, ...dimensions
 			, title: '相機拍照'
 		};
@@ -171,7 +171,7 @@ var ImageService=Function.extend(Object, function () {
 		let index=(workspace?.History.length||0)+1;
 		ratio??='original';
 		let mediaId=image?.mediaId;
-		let aspectRatio='original'===ratio?(image?this.GetAspectRatio(await this.GetDimensions(image)):undefined):ratio;
+		let aspectRatio='original'===ratio?(image?_(this).GetAspectRatio(await _(this).GetDimensions(image)):undefined):ratio;
 		if (image&&!mediaId) {
 			let upload=await flow.upload({base64: image.base64, mimeType: image.mimeType, name: image.title});
 			mediaId=upload.mediaId;
@@ -183,7 +183,7 @@ var ImageService=Function.extend(Object, function () {
 			, modelDisplayName: ImageService.ModelDisplayName
 		});
 		result=await _(this).GetContent(result);
-		let dimensions=await this.GetDimensions(result);
+		let dimensions=await _(this).GetDimensions(result);
 		return {
 			message: 'Image generated and saved to Flow Assets ('+result.mediaId+').'
 			, image: {
@@ -193,7 +193,7 @@ var ImageService=Function.extend(Object, function () {
 				, mediaId: result.mediaId
 				, prompt
 				, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-				, aspectRatio: this.GetAspectRatio(dimensions)
+				, aspectRatio: _(this).GetAspectRatio(dimensions)
 				, ...dimensions
 				, title: `修改版本 #${index}`
 			}

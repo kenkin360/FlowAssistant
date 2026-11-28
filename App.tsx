@@ -20,30 +20,49 @@ var App=Function.extend(React.Component, function () {
 	}
 
 	_['public'].componentDidMount=function () {
-		Object.assign(globalThis, {React, Flow, fabric, Bundle, Resource});
-		_(this).Load(this);
+		try {
+			Object.assign(globalThis, {React, Flow, fabric, Bundle, Resource});
+			_(this).Load(this);
+		}
+		catch (error) { _(this).ShowError(error); }
 	};
 
+	_['public'].componentDidCatch=function (error) {
+		let $this=_(this);
+		$this.m_renderer=null;
+		$this.m_error=error;
+		console.error(error);
+		try { this.forceUpdate(); }
+		catch (renderError) { console.error('Unable to display the render failure:', renderError); }
+	};
+
+	_['protected'].ShowError=function (error) {
+		let $this=_(this);
+		$this.m_loading=false;
+		$this.m_renderer=null;
+		$this.m_error=error;
+		console.error(error);
+		try { this.forceUpdate(); }
+		catch (renderError) { console.error('Unable to display the load failure:', renderError); }
+	};
 	_['protected'].Load=function (component) {
 		let $this=_(component);
 		if ($this.m_loading) return;
-		$this.m_loading=true;
-		$this.m_error=null;
-		$this.m_progress={File: '', Completed: 0, Total: Bundle.Config.length};
-		component.forceUpdate();
-		Bundle.Load((progress)=>{
-			$this.m_progress=progress;
+		try {
+			$this.m_loading=true;
+			$this.m_error=null;
+			$this.m_progress={File: '', Completed: 0, Total: Bundle.Config.length};
 			component.forceUpdate();
-		}).then((loaded)=>{
-			$this.m_loading=false;
-			$this.m_renderer=loaded.MainRenderer;
-			component.forceUpdate();
-		}, (error)=>{
-			$this.m_loading=false;
-			$this.m_error=error;
-			console.error(error);
-			component.forceUpdate();
-		});
+			Bundle.Load((progress)=>{
+				$this.m_progress=progress;
+				component.forceUpdate();
+			}).then((loaded)=>{
+				$this.m_loading=false;
+				$this.m_renderer=loaded.MainRenderer;
+				component.forceUpdate();
+			}).catch((error)=>$this.ShowError(error));
+		}
+		catch (error) { $this.ShowError(error); }
 	};
 
 	_['public'].render=function () {

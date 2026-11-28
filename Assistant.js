@@ -8,7 +8,7 @@ var Assistant=Function.extend(Object, function () {
 		$this.m_listeners=new Set();
 		$this.m_activeTurn=null;
 		$this.m_ready=Promise.resolve();
-		$this.m_methods=new Methods(sourceUrl, $this.m_conversation, (event, details, attachment)=>this.NotifyAssistant(event, details, attachment), ()=>this.Notify());
+		$this.m_methods=new Methods(sourceUrl, $this.m_conversation, (event, details, attachment)=>$this.NotifyAssistant(event, details, attachment), ()=>$this.Notify());
 	}
 	_['public'].GetMethods=function () { return _(this).m_methods; };
 	_['public'].GetMessages=function () { return _(this).m_conversation.GetMessages(); };
@@ -17,10 +17,11 @@ var Assistant=Function.extend(Object, function () {
 	_['public'].Subscribe=function (listener) {
 		let $this=_(this);
 		$this.m_listeners.add(listener);
-		listener();
+		try { listener(); }
+		catch (error) { console.error('Subscriber failed:', error); }
 		return ()=>$this.m_listeners.delete(listener);
 	};
-	_['public'].Notify=function (details) {
+	_['protected'].Notify=function (details) {
 		for (let listener of _(this).m_listeners) {
 			try { listener(details); }
 			catch (error) { console.error('Subscriber failed:', error); }
@@ -28,19 +29,22 @@ var Assistant=Function.extend(Object, function () {
 	};
 	_['public'].Reply=function (text, fields={}) {
 		_(this).m_conversation.Add('assistant', text, fields);
-		this.Notify(fields);
+		_(this).Notify(fields);
 	};
 	_['public'].ReportError=function (error) {
-		_(this).m_conversation.Add('system', error?.message||String(error));
-		this.Notify();
+		try {
+			_(this).m_conversation.Add('system', error?.message||String(error));
+			_(this).Notify();
+		}
+		catch (reportError) { console.error('Unable to record failure:', reportError); }
 	};
 	_['public'].Stop=function () {
 		let $this=_(this);
 		$this.m_activeTurn?.abort();
 		$this.m_activeTurn=null;
-		this.Notify();
+		_(this).Notify();
 	};
-	_['public'].ReadResponse=function (value, allowMethod=true) {
+	_['protected'].ReadResponse=function (value, allowMethod=true) {
 		let raw=String(value??'');
 		let fallback=()=>({reply: '回應格式不正確，未執行任何方法。原始回應：\n'+raw, MethodName: null, Arguments: null, Valid: false});
 		let match=raw.match(/^\s*(\{[\s\S]*\})\s*$/)||raw.match(/^\s*\x60{3}json\s*\n\s*(\{[\s\S]*\})\s*\n\x60{3}\s*$/i);
@@ -61,7 +65,7 @@ var Assistant=Function.extend(Object, function () {
 	};
 	_['public'].RequestResponse=async function (prompt, options, allowMethod=false) {
 		let response=await Flow.generate.text(prompt, options);
-		return this.ReadResponse(response?.text, allowMethod);
+		return _(this).ReadResponse(response?.text, allowMethod);
 	};
 	_['public'].GetInstruction=function (runtime, methods) {
 		return '你是 Assistant。請依對話另一方本輪使用的語言回答，並根據實際結果處理要求。\n'
@@ -71,7 +75,7 @@ var Assistant=Function.extend(Object, function () {
 			+'MethodName 使用現有類型與其方法的完整名稱；執行後會把實際結果交還給你。'
 			+'收到方法結果後，根據實際結果選擇下一個方法，或在 reply 中陳述已完成的事項。';
 	};
-	_['public'].GetRequest=async function (message, completed) {
+	_['protected'].GetRequest=async function (message, completed) {
 		let methods=_(this).m_methods;
 		let runtime=methods.Modules.InspectRuntime({}).message;
 		return methods.GetRequest(message, completed, this.GetMessages(), this.GetInstruction(runtime, methods.GetInstruction()));
@@ -81,14 +85,21 @@ var Assistant=Function.extend(Object, function () {
 		let message=String(value??'').trim();
 		if (!message||this.IsConsulting()) return;
 		let turn=$this.m_activeTurn=new AbortController();
-		$this.m_conversation.Add('user', message);
-		this.Notify();
-		try { await $this.Process(message, turn); }
-		catch (error) { if (!turn.signal.aborted) this.ReportError(error); }
+		try {
+			$this.m_conversation.Add('user', message);
+			_(this).Notify();
+			await $this.Process(message, turn);
+		}
+		catch (error) {
+			if (!turn.signal.aborted) {
+				console.error('Conversation failed:', error);
+				this.ReportError(error);
+			}
+		}
 		finally {
 			if ($this.m_activeTurn===turn) {
 				$this.m_activeTurn=null;
-				this.Notify();
+				_(this).Notify();
 			}
 		}
 	};
@@ -100,7 +111,7 @@ var Assistant=Function.extend(Object, function () {
 		let lastResult=null;
 		for (let count=0; count<12; count++) {
 			if (turn.signal.aborted) return;
-			let request=await this.GetRequest(message, completed);
+			let request=await _(this).GetRequest(message, completed);
 			let response=await this.RequestResponse(request.Prompt, request.Options, true);
 			if (turn.signal.aborted) return;
 			if (!response.Valid||!response.MethodName) {
@@ -116,6 +127,7 @@ var Assistant=Function.extend(Object, function () {
 				record.Result=$this.m_methods.DescribeResult(lastResult);
 			}
 			catch (error) {
+				console.error('Method failed:', error);
 				lastResult=null;
 				record.Status='failed';
 				record.Result=error?.message||String(error);
@@ -123,14 +135,14 @@ var Assistant=Function.extend(Object, function () {
 			completed.push(record);
 		}
 		if (turn.signal.aborted) return;
-		let request=await this.GetRequest(message, completed);
+		let request=await _(this).GetRequest(message, completed);
 		let prompt=request.Prompt+'\n請根據以上已發生的結果，以 {"reply":"根據結果給對話另一方的回答"} 結束本輪。';
 		let final=await this.RequestResponse(prompt, request.Options);
 		if (turn.signal.aborted) return;
 		let fields=$this.m_methods.CompleteResponse(final.reply, responses, lastResult);
 		this.Reply(final.reply, fields);
 	};
-	_['public'].NotifyAssistant=async function (event, details={}, attachment) {
+	_['protected'].NotifyAssistant=async function (event, details={}, attachment) {
 		try {
 			let $this=_(this);
 			await $this.m_ready;

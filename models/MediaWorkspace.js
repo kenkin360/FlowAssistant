@@ -17,10 +17,11 @@ var MediaWorkspace=Function.extend(Object, function () {
 	_['public'].NotifyChanged=function () { _(this).m_changed?.(); };
 	_['public'].SelectVersion=function (id) {
 		let media=this.History.find((item)=>item.Id===id);
-		if (!media) throw new Error('Media version not found: '+id);
+		if (!media) return null;
 		_(this).m_selectedId=media.Id;
 		_(this).m_artifact=null;
 		this.NotifyChanged();
+		return media;
 	};
 	_['public'].Add=function (value) {
 		let media=this.ToMedia(value);

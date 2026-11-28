@@ -34,7 +34,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 	};
 	_['public'].Localize=function () { _(this).m_view.Localize((key)=>this.Text(key)); };
 
-	_['public'].Mount=function (name, element, slot='header') { _(this).m_view.Mount(name, element, slot, this.Slots); };
+	_['public'].Mount=function (name, element, slot='header') { return _(this).m_view.Mount(name, element, slot, this.Slots); };
 	_['public'].Unmount=function (name) { _(this).m_view.Unmount(name); };
 	_['public'].Mounted=function () { return _(this).m_view.Mounted(); };
 
@@ -42,42 +42,52 @@ var MainRenderer=Function.extend(React.Component, function () {
 		let $this=_(this);
 		$this.m_unsubscribe=$this.m_assistant.Subscribe((details)=>{ $this.m_view.ApplySuggestions(details); $this.Update(); });
 		let root=$this.m_view.GetRoot();
-		root.onclick=(event)=>{
-			let target=event.target.closest?.('[data-action],[data-ratio]');
-			if (!target||!root.contains(target)) return;
-			let imageService=$this.m_assistant.GetMethods().ImageService;
-			let workspace=imageService.GetWorkspace();
-			if (target.dataset.ratio) { $this.m_view.SetRatio(target.dataset.ratio); return; }
-			switch (target.dataset.action) {
-				case 'media-window': new HtmlNode($this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
-				case 'chat-window': new HtmlNode($this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
-				case 'send': $this.m_assistant.IsConsulting()?$this.m_assistant.Stop():$this.Submit(); break;
-				case 'select': imageService.SelectCurrent(); break;
-				case 'camera': imageService.CaptureCurrent(); break;
-				case 'download':
-					if (workspace.GetActiveMedia() instanceof Media.Video) $this.m_assistant.GetMethods().VideoService.DownloadCurrent(workspace).catch((error)=>$this.m_assistant.ReportError(error));
-					else imageService.DownloadCurrent();
-					break;
-				case 'generate': imageService.GenerateCurrent({prompt: $this.m_view.GetPrompt(), aspectRatio: $this.m_view.GetRatio()}); break;
-				case 'info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'flex'); break;
-				case 'close-info': new HtmlNode($this.Node('dialog')).SetStyle('display', 'none'); break;
-				case 'copy-prompt': navigator.clipboard.writeText($this.m_view.GetPrompt()); break;
-			}
-		};
-		root.onkeydown=(event)=>{
-			if (event.target===$this.Node('input')&&'Enter'===event.key&&!event.shiftKey&&!event.isComposing) {
-				event.preventDefault();
-				if (!$this.m_assistant.IsConsulting()) $this.Submit();
-			}
-		};
+		root.onclick=(event)=>{ $this.HandleClick(event).catch((error)=>$this.ReportError(error)); };
+		root.onkeydown=(event)=>{ $this.HandleKeyDown(event).catch((error)=>$this.ReportError(error)); };
 		$this.Update();
 		$this.ArrangeModals();
 		DisplayText.GetInstance($this.m_view.GetLocale()).then(()=>{
 			if (!$this.m_view.GetRoot()) return;
 			this.forceUpdate();
-			this.Update();
-		});
-		$this.m_assistant.SetReady(new ConversationOpening($this.m_assistant).Start(navigator.language));
+			$this.Update();
+		}).catch((error)=>$this.ReportError(error));
+		let ready=new ConversationOpening($this.m_assistant).Start(navigator.language).catch((error)=>$this.ReportError(error));
+		$this.m_assistant.SetReady(ready);
+	};
+
+	_['protected'].ReportError=function (error) {
+		console.error('UI event failed:', error);
+		_(this).m_assistant.ReportError(error);
+	};
+	_['protected'].HandleClick=async function (event) {
+		let $this=_(this);
+		let root=$this.m_view.GetRoot();
+		let target=event.target.closest?.('[data-action],[data-ratio]');
+		if (!target||!root?.contains(target)) return;
+		let imageService=$this.m_assistant.GetMethods().ImageService;
+		let workspace=imageService.GetWorkspace();
+		if (target.dataset.ratio) { $this.m_view.SetRatio(target.dataset.ratio); return; }
+		switch (target.dataset.action) {
+			case 'media-window': new HtmlNode(this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
+			case 'chat-window': new HtmlNode(this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
+			case 'send': if ($this.m_assistant.IsConsulting()) $this.m_assistant.Stop(); else await this.Submit(); break;
+			case 'select': await imageService.SelectCurrent(); break;
+			case 'camera': await imageService.CaptureCurrent(); break;
+			case 'download':
+				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent(workspace);
+				else await imageService.DownloadCurrent();
+				break;
+			case 'generate': await imageService.GenerateCurrent({prompt: $this.m_view.GetPrompt(), aspectRatio: $this.m_view.GetRatio()}); break;
+			case 'info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'flex'); break;
+			case 'close-info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'none'); break;
+			case 'copy-prompt': await navigator.clipboard.writeText($this.m_view.GetPrompt()); break;
+		}
+	};
+	_['protected'].HandleKeyDown=async function (event) {
+		if (event.target===this.Node('input')&&'Enter'===event.key&&!event.shiftKey&&!event.isComposing) {
+			event.preventDefault();
+			if (!_(this).m_assistant.IsConsulting()) await this.Submit();
+		}
 	};
 
 	_['protected'].Update=function () {

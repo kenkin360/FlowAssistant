@@ -7,10 +7,10 @@ var Sources=Function.extend(Object, function () {
 		$this.m_hostSourceUrl=hostSourceUrl;
 		$this.m_installed=new Map();
 	}
-	_['public'].GetCompiled=function () { return _(this).Parse(_(this).m_hostSourceUrl); };
-	_['public'].CompiledNames=function () { try { return [...this.GetCompiled().keys()]; } catch (error) { return []; } };
-	_['public'].GetEntries=function () { return [...Bundle.Config, ['DrawRectangle', Bundle.SourceUrl('extensions/DrawRectangle.js')], ['Upscale', Bundle.SourceUrl('extensions/Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember)); };
-	_['public'].InstalledNames=function () { return [..._(this).m_installed.keys()]; };
+	_['protected'].GetCompiled=function () { return _(this).Parse(_(this).m_hostSourceUrl); };
+	_['public'].CompiledNames=function () { try { return [..._(this).GetCompiled().keys()]; } catch (error) { return []; } };
+	_['protected'].GetEntries=function () { return [...Bundle.Config, ['DrawRectangle', Bundle.SourceUrl('extensions/DrawRectangle.js')], ['Upscale', Bundle.SourceUrl('extensions/Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember)); };
+	_['protected'].InstalledNames=function () { return [..._(this).m_installed.keys()]; };
 	_['public'].GetInstalled=function (name) { return _(this).m_installed.get(name); };
 	_['public'].SetInstalled=function (name, entry) {
 		if (entry) _(this).m_installed.set(name, entry);
@@ -34,12 +34,12 @@ var Sources=Function.extend(Object, function () {
 	};
 	_['public'].ReadCompiledSource=function (args={}) {
 		if ('string'!==typeof args.file) return {message: `Compiled source files: ${JSON.stringify(this.CompiledNames())}`};
-		let compiled=this.GetCompiled();
+		let compiled=_(this).GetCompiled();
 		if (!compiled.has(args.file)) throw new Error('Compiled source file not found: '+args.file);
 		return {message: `${args.file}:\n${compiled.get(args.file)}`};
 	};
 	_['public'].ReadRemoteSource=async function (args={}) {
-		let entries=this.GetEntries();
+		let entries=_(this).GetEntries();
 		if ('string'!==typeof args.name) return {message: `Remote source entries: ${JSON.stringify(entries.map((entry)=>({name: entry.Name, url: entry.Value, readyMember: entry.ReadyMember})))}`};
 		let entry=entries.find((item)=>item.Name===args.name||item.Value.split(/[?#]/)[0].split('/').pop()===args.name);
 		if (!entry) throw new Error('Remote source not found: '+args.name);
@@ -49,7 +49,7 @@ var Sources=Function.extend(Object, function () {
 	};
 	_['public'].ReadInstalledSource=async function (args={}) {
 		let sources=_(this).m_installed;
-		if ('string'!==typeof args.name) return {message: `Installed modules: ${JSON.stringify(this.InstalledNames())}`};
+		if ('string'!==typeof args.name) return {message: `Installed modules: ${JSON.stringify(_(this).InstalledNames())}`};
 		let entry=sources.get(args.name);
 		if (!entry) throw new Error('Installed module not found: '+args.name);
 		if (!entry.Remote) return {message: `${args.name}:\n${entry.Value}`};

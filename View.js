@@ -12,7 +12,7 @@ var View=Function.extend(Object, function () {
 	}
 	_['public'].SetRoot=function (element) { _(this).m_root=element; };
 	_['public'].GetRoot=function () { return _(this).m_root; };
-	_['public'].Url=function (media) {
+	_['protected'].Url=function (media) {
 		if (!media?.Data) return '';
 		let urls=_(this).m_urls;
 		if (!urls.has(media)) urls.set(media, URL.createObjectURL(media.Data));
@@ -24,7 +24,7 @@ var View=Function.extend(Object, function () {
 		for (let url of _(this).m_urls.values()) URL.revokeObjectURL(url);
 		_(this).m_urls.clear();
 	};
-	_['public'].Prune=function (media, messages) {
+	_['protected'].Prune=function (media, messages) {
 		let used=new Set([...media.History, media.GetCurrentMedia(), ...messages.map((message)=>message.Attachment)]);
 		for (let [media, url] of _(this).m_urls) if (!used.has(media)) {
 			URL.revokeObjectURL(url);
@@ -32,7 +32,7 @@ var View=Function.extend(Object, function () {
 		}
 	};
 	_['public'].GetPrompt=function () { return this.Node('pending-prompt')?.textContent||''; };
-	_['public'].SetPrompt=function (prompt) {
+	_['protected'].SetPrompt=function (prompt) {
 		let value=String(prompt??'');
 		new HtmlNode(this.Node('pending-prompt')).SetText(value);
 		new HtmlNode(this.Node('pending')).SetStyle('display', value?'block':'none');
@@ -46,7 +46,7 @@ var View=Function.extend(Object, function () {
 		for (let button of buttons) button.classList.toggle('ca-selected', button.dataset.ratio===ratio);
 	};
 	_['public'].ApplySuggestions=function (suggestions) {
-		if ('string'===typeof suggestions?.suggestedPrompt) this.SetPrompt(suggestions.suggestedPrompt);
+		if ('string'===typeof suggestions?.suggestedPrompt) _(this).SetPrompt(suggestions.suggestedPrompt);
 		if ('string'===typeof suggestions?.aspectRatio) this.SetRatio(suggestions.aspectRatio);
 	};
 	_['public'].GetLocale=function () {
@@ -65,11 +65,21 @@ var View=Function.extend(Object, function () {
 		}
 	};
 	_['public'].Mount=function (name, element, slot, slots) {
-		let target=_(this).m_root?.querySelector(`[data-slot="${slot}"]`);
-		if (!name||!(element instanceof HTMLElement)||!slots.includes(slot)||!target) throw new Error('Provide an extension name, an HTML element, and an available UI slot.');
-		this.Unmount(name);
-		_(this).m_mounted.set(name, element);
-		target.appendChild(element);
+		if (!name||!(element instanceof HTMLElement)||!slots?.includes(slot)) return false;
+		try {
+			let target=_(this).m_root?.querySelector(`[data-slot="${slot}"]`);
+			if (!target) return false;
+			let mounted=_(this).m_mounted;
+			let previous=mounted.get(name);
+			target.appendChild(element);
+			if (previous&&previous!==element) previous.remove();
+			mounted.set(name, element);
+			return true;
+		}
+		catch (error) {
+			console.error('Unable to mount UI element:', error);
+			return false;
+		}
 	};
 	_['public'].Unmount=function (name) {
 		let mounted=_(this).m_mounted;
@@ -88,13 +98,13 @@ var View=Function.extend(Object, function () {
 		let showImage=media.GetActiveMedia() instanceof Media.Image&&!!media.GetActiveMedia().Data;
 		let showVideo=media.GetActiveMedia() instanceof Media.Video&&!!media.GetActiveMedia().Data;
 		if (showImage&&image) {
-			let url=this.Url(media.GetActiveMedia());
+			let url=_(this).Url(media.GetActiveMedia());
 			if (image.src!==url) picture.SetSource(url);
 		}
 		else if (image?.getAttribute('src')) image.removeAttribute('src');
 		picture.Show(showImage);
 		if (showVideo&&movie) {
-			let url=this.Url(media.GetActiveMedia());
+			let url=_(this).Url(media.GetActiveMedia());
 			if (movie.src!==url) movie.src=url;
 		}
 		else if (movie?.getAttribute('src')) {
@@ -111,10 +121,10 @@ var View=Function.extend(Object, function () {
 		node('pending-count').SetText(text('promptDraft'));
 		node('pending-list').SetStyle('display', 'none');
 		if (!this.Node('ratios')?.querySelector('.ca-selected')) this.SetRatio('original');
-		_(this).m_messages.Update(node('message-list').GetElement(), messages, consulting, text, (value)=>this.Url(value));
-		_(this).m_history.Update(node('history').GetElement(), media, select, (value)=>this.Url(value));
+		_(this).m_messages.Update(node('message-list').GetElement(), messages, consulting, text, (value)=>_(this).Url(value));
+		_(this).m_history.Update(node('history').GetElement(), media, select, (value)=>_(this).Url(value));
 		node('history-count').SetText(media.History.length);
-		this.Prune(media, messages);
+		_(this).Prune(media, messages);
 	};
 	_['protected'].m_root=null;
 	_['protected'].m_urls=null;

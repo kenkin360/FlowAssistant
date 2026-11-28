@@ -7,7 +7,7 @@ var VideoService=Function.extend(Object, function () {
 	}
 	VideoService.ModelDisplayName='Omni 1.2 Flash';
 	_['public'].GetInstruction=function () {
-		return '產生影片時使用 MethodName: VideoService.Generate，Arguments 為 {prompt,aspectRatio,durationSeconds,resolution}；aspectRatio 為 16:9 或 9:16，durationSeconds 為 3 至 15，resolution 為 720p 或 360p。可選 useCurrentImageAsFirstFrame: true 作為首幀，或 useCurrentImageAsReference: true 作為參考；也可傳 firstFrameImageMediaId、referenceImageMediaIds，或 sourceVideoMediaId 作為影片編輯來源。首幀模式範例：{"prompt":"...","useCurrentImageAsFirstFrame":true}。完成後影片自動存入 Flow Assets。';
+		return '產生影片時使用 MethodName: VideoService.Generate，Arguments 為 {prompt,aspectRatio,durationSeconds,resolution}。可選 useCurrentImageAsFirstFrame: true 作為首幀，或 useCurrentImageAsReference: true 作為參考；也可傳 firstFrameImageMediaId、referenceImageMediaIds，或 sourceVideoMediaId 作為影片編輯來源。首幀模式範例：{"prompt":"...","useCurrentImageAsFirstFrame":true}。完成後影片自動存入 Flow Assets。';
 	};
 	_['public'].DownloadCurrent=async function (workspace) {
 		let selected=workspace.GetActiveMedia();
@@ -34,13 +34,10 @@ var VideoService=Function.extend(Object, function () {
 		if (options.useCurrentImageAsReference) referenceImages=[context.image, ...(options.referenceImageMediaIds||[])];
 		else if (options.referenceImageMediaIds) referenceImages=options.referenceImageMediaIds;
 		if ('string'!==typeof prompt||!prompt.trim()) throw new Error('Provide a video prompt.');
-		if (!['16:9', '9:16'].includes(aspectRatio)) throw new Error('Unsupported video aspect ratio.');
-		if (!Number.isInteger(durationSeconds)||durationSeconds<3||durationSeconds>15) throw new Error('Video duration must be 3 to 15 seconds.');
-		if (!['720p', '360p'].includes(resolution)) throw new Error('Unsupported video resolution.');
 		if (firstFrameImage&&referenceImages?.length) throw new Error('A first frame and reference images cannot be used together.');
 		if (firstFrameImage&&sourceVideoMediaId) throw new Error('A first frame and source video cannot be used together.');
 		if (undefined!==sourceVideoMediaId&&('string'!==typeof sourceVideoMediaId||!sourceVideoMediaId)) throw new Error('The source video needs a mediaId.');
-		if (undefined!==referenceImages&&(!Array.isArray(referenceImages)||referenceImages.length>10)) throw new Error('Provide up to 10 reference images.');
+		if (undefined!==referenceImages&&!Array.isArray(referenceImages)) throw new Error('Reference images must be an array.');
 
 		let firstFrameImageMediaId=firstFrameImage?await _(this).ResolveImageId(firstFrameImage):undefined;
 		let referenceImageMediaIds=referenceImages?.length?await Promise.all(referenceImages.map((image)=>_(this).ResolveImageId(image))):undefined;
