@@ -44,71 +44,29 @@ var Assistant=Function.extend(Object, function () {
 		$this.m_activeTurn=null;
 		_(this).Notify();
 	};
-	_['protected'].ReadResponse=function (value) {
-		let raw=String(value??'');
-		let fallback=(reason)=>{
-			console.warn('Assistant response rejected:', reason, raw);
-			return new AssistantResponse({reply: `
-回應格式不正確，未執行任何方法。原始回應：
-${raw}
-`}, false);
-		};
-		let match=raw.match(/^\s*(\{[\s\S]*\})\s*$/)||raw.match(/^\s*\x60{3}json\s*\n\s*(\{[\s\S]*\})\s*\n\x60{3}\s*$/i);
-		if (!match) {
-			return fallback('Expected a JSON object.');
-		}
-		let characters=[];
-		let inside=false;
-		let escaped=false;
-		for (let character of match[1]) {
-			if (inside&&!escaped&&(character==='\n'||character==='\r'||character==='\t')) {
-				characters.push(character==='\n'?'\\n':character==='\r'?'\\r':'\\t');
-				continue;
+	_['public'].RequestResponse=async function (prompt, options, signal) {
+		let request=prompt;
+		while (!signal?.aborted) {
+			let raw=(await Flow.generate.text(request, options))?.text;
+			if (signal?.aborted) return null;
+			let invalid=null;
+			try {
+				let value=JSON.parse(raw);
+				if (value&&'object'===typeof value&&!Array.isArray(value)&&(value.reply==null||'string'===typeof value.reply)) {
+					return new AssistantResponse(value);
+				}
+				invalid='Expected a JSON object with a text reply.';
 			}
-			characters.push(character);
-			if (escaped) {
-				escaped=false;
-			}
-			else if (inside&&character==='\\') {
-				escaped=true;
-			}
-			else if (character==='"') {
-				inside=!inside;
-			}
-		}
-		let parsed=null;
-		try { parsed=JSON.parse(characters.join('')); }
-		catch (error) { return fallback(error); }
-		if (!parsed||'object'!==typeof parsed||Array.isArray(parsed)) return fallback('Expected a JSON object.');
-		let hasMethod=parsed.MethodName!==undefined&&parsed.MethodName!==null;
-		if (hasMethod) {
-			if ('string'!==typeof parsed.MethodName||!parsed.MethodName.trim()
-				||!parsed.Arguments||'object'!==typeof parsed.Arguments||Array.isArray(parsed.Arguments)
-				||parsed.reply!==undefined&&'string'!==typeof parsed.reply) return fallback('Unexpected response fields.');
-		}
-		else if ('string'!==typeof parsed.reply||!parsed.reply.trim()) return fallback('Unexpected response fields.');
-		return new AssistantResponse(parsed, true);
-	};
-	_['public'].RequestResponse=async function (prompt, options) {
-		let response=await Flow.generate.text(prompt, options);
-		let parsed=_(this).ReadResponse(response?.text);
-		if (parsed.IsValid) {
-			return parsed;
-		}
-		try {
-			let correction=`
+			catch (error) { invalid=error; }
+			console.warn('Invalid assistant response:', invalid, raw);
+			request=`
 ${prompt}
-上一則回應原文：
-${String(response?.text??'')}
-請保留原本的意圖，重新輸出可由 JSON.parse 解析的單一 JSON 物件。要呼叫方法時，MethodName 為完整方法名稱，Arguments 為參數物件；reply 可同時提供，會先傳給對話另一方。一般回答使用 reply。
+上一則回應：
+${String(raw??'')}
+請重新產生可由 JSON.parse 解析的單一 JSON 物件。
 `;
-			let retry=await Flow.generate.text(correction, options);
-			return _(this).ReadResponse(retry?.text);
 		}
-		catch (error) {
-			console.error('Assistant response correction failed:', error);
-			return parsed;
-		}
+		return null;
 	};
 	_['public'].Consult=async function (getRequest, turn) {
 		let $this=_(this);
@@ -116,9 +74,9 @@ ${String(response?.text??'')}
 		let lastResult=null;
 		while (!turn?.signal.aborted) {
 			let request=await getRequest(completed);
-			let response=await this.RequestResponse(request.Prompt, request.Options);
+			let response=await this.RequestResponse(request.Prompt, request.Options, turn?.signal);
 			if (turn?.signal.aborted) return null;
-			if (!response.IsValid||!response.MethodName) {
+			if (!response.MethodName) {
 				return $this.m_methods.CompleteResponse(lastResult, response.Reply);
 			}
 			if (response.Reply.trim()) this.Reply(new Response(response.Reply));
