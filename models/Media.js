@@ -4,7 +4,7 @@ var Media=Function.extend(Object, function () {
 
 	function Media(value={}) {
 		_['base'].apply(this, arguments);
-		this.Id=value.id||'media_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+		this.Id=value.id||`media_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 		this.MimeType=value.mimeType||'application/octet-stream';
 		this.Title=value.title||null;
 		this.MediaId=value.mediaId||null;

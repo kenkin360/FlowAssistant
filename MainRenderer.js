@@ -16,7 +16,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 			media.remove();
 			chat.remove();
 			shell.querySelector('.ca-work').remove();
-			$this.m_templates.Shell={__html: template.content.querySelector('style').outerHTML+shell.innerHTML};
+			$this.m_templates.Shell={__html: `${template.content.querySelector('style').outerHTML}${shell.innerHTML}`};
 			$this.m_modals={};
 			this.state={Focused: 'Chat'};
 		};
