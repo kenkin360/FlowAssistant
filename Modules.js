@@ -23,11 +23,24 @@ var Modules=Function.extend(Object, function () {
 		let runtime=this.GetRuntime();
 		if ('string'===typeof args.name) {
 			let method=runtime.Modules[args.name]?.Run;
-			if ('function'!==typeof method) throw new Error(`Method not found: ${args.name}.Run`);
-			return {message: `${args.name}.Run：${method.Description||String(method)}`};
+			if ('function'!==typeof method) throw new Error(`
+Method not found: ${args.name}.Run
+`);
+			return {message: `
+${args.name}.Run：${method.Description||String(method)}
+`};
 		}
 		let names=_(this).GetNames();
-		return {message: `可呼叫模組：${names.map((name)=>`${name}.Run${runtime.Modules[name].Run.Description?`：${runtime.Modules[name].Run.Description}`:''}`).join('；')||'無'}。編譯原碼：${JSON.stringify(_(this).m_sources.CompiledNames())}。可回復的模組安裝：${_(this).GetVersionCount()}。`};
+		let descriptions=names.map((name)=>{
+			let description=runtime.Modules[name].Run.Description;
+			let methodName=`${name}.Run`;
+			return description?`${methodName}：${description}`:methodName;
+		});
+		return {message: `
+可呼叫模組：${descriptions.join('；')||'無'}。
+編譯原碼：${JSON.stringify(_(this).m_sources.CompiledNames())}。
+可回復的模組安裝：${_(this).GetVersionCount()}。
+`};
 	};
 	_['protected'].RestoreGlobal=function (name, descriptor) {
 		if (descriptor) descriptor.Restore(globalThis, name);
@@ -42,7 +55,9 @@ var Modules=Function.extend(Object, function () {
 		else delete this.GetRuntime().Modules[installation.Name];
 		$this.m_sources.SetInstalled(installation.Name, installation.PreviousSource);
 		$this.m_versions.pop();
-		return `Restored the previous module definition and registration. ${$this.m_versions.length} earlier installations remain.`;
+		return `
+Restored the previous module definition and registration. ${$this.m_versions.length} earlier installations remain.
+`;
 	};
 	_['public'].Initialize=function () {
 		let $this=_(this);
@@ -58,14 +73,20 @@ var Modules=Function.extend(Object, function () {
 		return $this.m_startup;
 	};
 	_['protected'].Register=function (name, value, source, remote, track, previousGlobal) {
-		if (value==null) throw new Error(`${name} did not expose a module value.`);
+		if (value==null) throw new Error(`
+${name} did not expose a module value.
+`);
 		let runtime=this.GetRuntime();
-		if (undefined!==value.Run&&'function'!==typeof value.Run) throw new Error(`${name} has an invalid Run method.`);
+		if (undefined!==value.Run&&'function'!==typeof value.Run) throw new Error(`
+${name} has an invalid Run method.
+`);
 		let installation=new Installation(name, previousGlobal, Binding.Capture(runtime.Modules, name), this.m_sources.GetInstalled(name));
 		runtime.Modules[name]=value;
 		this.m_sources.SetInstalled(name, new Source(name, source, undefined, remote));
 		if (track) this.m_versions.push(installation);
-		return {message: `${name} loaded. Callable: ${'function'===typeof value.Run?'Run':'(none)'}. Reversible installations: ${this.m_versions.length}.`};
+		return {message: `
+${name} loaded. Callable: ${'function'===typeof value.Run?'Run':'(none)'}. Reversible installations: ${this.m_versions.length}.
+`};
 	};
 	_['protected'].LoadModule=async function (source, options={}) {
 		let $this=_(this);
@@ -74,7 +95,9 @@ var Modules=Function.extend(Object, function () {
 		if ('string'!==typeof source||!source.trim()) throw new Error('Provide module source or a script URL.');
 		if ('function'!==typeof Type||!(Type.prototype instanceof Resource)) throw new Error('Provide a Resource type for the module.');
 		let remote=Type===Resource.Module||Type.prototype instanceof Resource.Module;
-		if (remote&&$this.GetRuntime().Modules[name]) return {message: `${name} is already loaded.`};
+		if (remote&&$this.GetRuntime().Modules[name]) return {message: `
+${name} is already loaded.
+`};
 		let previousGlobal=Binding.Capture(globalThis, name);
 		try {
 			let value=await new Type(name, source, readyMember);

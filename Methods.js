@@ -49,7 +49,9 @@ ${completed.map(JSON.stringify).join('\n')}
 		let method=target?.[name];
 		let prototype=target&&Object.getPrototypeOf(target);
 		if (!target||'function'!==typeof method||!Object.prototype.hasOwnProperty.call(target, name)&&!Object.prototype.hasOwnProperty.call(prototype, name)) {
-			throw new Error(`Method not found: ${methodName}`);
+			throw new Error(`
+Method not found: ${methodName}
+`);
 		}
 		await this.Modules.GetStartup();
 		let needsMedia=!Object.prototype.hasOwnProperty.call(this, owner)||owner==='VideoService'&&name==='Generate'&&(args.useCurrentImageAsFirstFrame||args.useCurrentImageAsReference);
@@ -84,10 +86,14 @@ ${completed.map(JSON.stringify).join('\n')}
 		}
 		if (output) {
 			let result=media.Add(output);
-			return {message: 'string'===typeof message?message:`${methodName} 已完成。`, artifact: result};
+			return {message: 'string'===typeof message?message:`
+${methodName} 已完成。
+`, artifact: result};
 		}
 		if (value&&'string'===typeof message) return value;
-		return {message: `${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成').slice(0,12000)}`};
+		return {message: `
+${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成').slice(0,12000)}
+`};
 	};
 	_['public'].CompleteResponse=function (reply, responses, result) {
 		let suggestions={};

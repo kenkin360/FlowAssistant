@@ -20,7 +20,9 @@ var ImageService=Function.extend(Object, function () {
 		let artifact=workspace.GetCurrentMedia();
 		let info=selected instanceof Media.Image?await _(this).GetDimensions(await workspace.GetLegacyMedia(selected)):null;
 		let dimensions=info?`${info.width} × ${info.height} (${selected.MimeType})`:'無';
-		let text=selected||artifact?`目前影像：${dimensions}；目前產物：${JSON.stringify(workspace.Describe(artifact))}`:'';
+		let text=selected||artifact?`
+目前影像：${dimensions}；目前產物：${JSON.stringify(workspace.Describe(artifact))}
+`:'';
 		let images=[];
 		if (selected instanceof Media.Image) {
 			let image=await workspace.GetLegacyMedia(selected);
@@ -34,7 +36,9 @@ var ImageService=Function.extend(Object, function () {
 			if (!image) return;
 			this.GetWorkspace().Add(image);
 			await _(this).m_notify('Media selected', {Title: image.title, Width: image.width, Height: image.height}, image);
-			return {message: `Media selected: ${image.title}`, artifact: this.GetWorkspace().GetActiveMedia()};
+			return {message: `
+Media selected: ${image.title}
+`, artifact: this.GetWorkspace().GetActiveMedia()};
 		}
 		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
@@ -44,7 +48,9 @@ var ImageService=Function.extend(Object, function () {
 			if (!image) return;
 			this.GetWorkspace().Add(image);
 			await _(this).m_notify('Camera image captured', {Title: image.title, Width: image.width, Height: image.height}, image);
-			return {message: `Camera image captured: ${image.title}`, artifact: this.GetWorkspace().GetActiveMedia()};
+			return {message: `
+Camera image captured: ${image.title}
+`, artifact: this.GetWorkspace().GetActiveMedia()};
 		}
 		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', {Error: error.message||String(error)}); }
 	};
@@ -103,7 +109,9 @@ var ImageService=Function.extend(Object, function () {
 			...original, id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
 			, base64: output.base64, mimeType: output.mimeType, mediaId: undefined
 			, ...dimensions
-			, prompt: `本地方法修改：${methodName}`
+			, prompt: `
+本地方法修改：${methodName}
+`
 			, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
 			, aspectRatio: _(this).GetAspectRatio(dimensions)
 			, title: output.title||`${original.title||'Image'} · ${methodName}`
@@ -186,7 +194,9 @@ var ImageService=Function.extend(Object, function () {
 		result=await _(this).GetContent(result);
 		let dimensions=await _(this).GetDimensions(result);
 		return {
-			message: `Image generated and saved to Flow Assets (${result.mediaId}).`
+			message: `
+Image generated and saved to Flow Assets (${result.mediaId}).
+`
 			, image: {
 				id: `ver_${Date.now()}`
 				, base64: result.base64
