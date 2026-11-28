@@ -19,7 +19,7 @@ ${this.VideoService.GetInstruction()}
 	_['public'].GetRequest=async function (message, completed, messages, instruction) {
 		let prior=messages.slice();
 		if (prior.at(-1)?.Sender==='user'&&prior.at(-1)?.Text===message) prior.pop();
-		let history=prior.slice(-20).map((entry)=>`${entry.Sender}: ${entry.Text}`).join('\n\n');
+		let history=prior.map((entry)=>`${entry.Sender}: ${entry.Text}`).join('\n\n');
 		let context=await this.ImageService.GetRequestContext();
 		let prompt=`
 ${context.Text}
@@ -28,19 +28,20 @@ ${history}
 本輪要求：
 ${message}
 `;
-		if (completed.length) {
-			prompt=`
-${prompt}
-已完成的方法與實際結果：
-${completed.map(JSON.stringify).join('\n')}
-請依這些結果決定是否需要下一個方法，或直接回答使用者。
-`;
-		}
 		let options={systemInstruction: instruction};
 		if (context.Images.length) options.images=context.Images;
-		return {Prompt: prompt, Options: options};
+		return this.GetContinuation(new AssistantRequest(prompt, options), completed);
 	};
-	_['public'].Invoke=async function (methodName, args={}) {
+	_['public'].GetContinuation=function (request, completed) {
+		if (!completed.length) return request;
+		return new AssistantRequest(`
+${request.Prompt}
+已完成的方法與實際結果：
+${completed.map(JSON.stringify).join('\n')}
+請依這些結果決定是否需要下一個方法，或根據結果回答。
+`, request.Options);
+	};
+	_['public'].Invoke=async function (methodName, args) {
 		if ('string'!==typeof methodName||!/^[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*$/.test(methodName)||methodName.endsWith('.constructor')) {
 			throw new Error('MethodName must identify an existing method on a type.');
 		}
@@ -59,11 +60,12 @@ Method not found: ${methodName}
 		let selected=media.GetActiveMedia();
 		let image=needsMedia&&selected instanceof Media.Image?await media.GetLegacyMedia(selected):null;
 		let artifact=needsMedia?(media.GetCurrentMedia()===selected&&image?image:await media.GetLegacyMedia(media.GetCurrentMedia())):null;
-		let context={image, artifact, track: true};
+		let context=new MethodContext(image, artifact);
 		let value=await method.call(target, args, context);
 		let output=null;
-		let message=value?.message;
+		let message=value instanceof MethodResult?value.Message:value?.message;
 		if (value instanceof Media) output=value;
+		else if (value instanceof MethodResult) output=value.Artifact;
 		else if (value&&'object'===typeof value&&'artifact' in value) {
 			output=value.artifact;
 			if (!output||'object'!==typeof output) throw new Error('A media result needs content and a MIME type.');
@@ -75,7 +77,7 @@ Method not found: ${methodName}
 				throw new Error('A media result needs content and a MIME type.');
 			}
 			if (!(output instanceof Media)&&/^image\//.test(output.mimeType)&&output.base64) {
-				output=await this.ImageService.ReadMethodResult({image: output}, image, methodName);
+				output=await this.ImageService.ReadMethodResult(output, image, methodName);
 			}
 		}
 		else if (value&&'object'===typeof value&&'image' in value) {
@@ -86,30 +88,29 @@ Method not found: ${methodName}
 		}
 		if (output) {
 			let result=media.Add(output);
-			return {message: 'string'===typeof message?message:`
+			return new MethodResult('string'===typeof message?message:`
 ${methodName} 已完成。
-`, artifact: result};
+`, result);
 		}
-		if (value&&'string'===typeof message) return value;
-		return {message: `
-${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成').slice(0,12000)}
-`};
+		if (value instanceof MethodResult) return value;
+		if (value&&'string'===typeof message) return new MethodResult(message, null);
+		return new MethodResult(`
+${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成')}
+`, null);
 	};
-	_['public'].CompleteResponse=function (reply, responses, result) {
-		let suggestions={};
+	_['public'].CompleteResponse=function (responses, result) {
+		let suggestedPrompt=null;
+		let aspectRatio=null;
 		for (let response of responses) {
-			if ('string'===typeof response.suggestedPrompt) suggestions.suggestedPrompt=response.suggestedPrompt;
-			if ('string'===typeof response.aspectRatio) suggestions.aspectRatio=response.aspectRatio;
+			if ('string'===typeof response.SuggestedPrompt) suggestedPrompt=response.SuggestedPrompt;
+			if ('string'===typeof response.AspectRatio) aspectRatio=response.AspectRatio;
 		}
 		let workspace=this.ImageService.GetWorkspace();
-		let current=result?.artifact||workspace.GetCurrentMedia();
-		let attachment=result?.artifact instanceof Media.Image||result?.artifact instanceof Media.Video?result.artifact:current instanceof Media.Video?current:null;
-		return {attachment, ...suggestions};
+		let current=result?.Artifact||workspace.GetCurrentMedia();
+		let attachment=result?.Artifact instanceof Media.Image||result?.Artifact instanceof Media.Video?result.Artifact:current instanceof Media.Video?current:null;
+		return new ResponseDetails(attachment, suggestedPrompt, aspectRatio);
 	};
 	_['public'].NormalizeAttachment=function (value) { return this.ImageService.GetWorkspace().ToMedia(value); };
-	_['public'].DescribeResult=function (result) {
-		return {result: result.message, ...(result.artifact?{artifact: this.ImageService.GetWorkspace().Describe(result.artifact)}:{})};
-	};
 	_['public'].Sources=null;
 	_['public'].Modules=null;
 	_['public'].ImageService=null;

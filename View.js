@@ -46,8 +46,8 @@ var View=Function.extend(Object, function () {
 		for (let button of buttons) button.classList.toggle('ca-selected', button.dataset.ratio===ratio);
 	};
 	_['public'].ApplySuggestions=function (suggestions) {
-		if ('string'===typeof suggestions?.suggestedPrompt) _(this).SetPrompt(suggestions.suggestedPrompt);
-		if ('string'===typeof suggestions?.aspectRatio) this.SetRatio(suggestions.aspectRatio);
+		if ('string'===typeof suggestions?.SuggestedPrompt) _(this).SetPrompt(suggestions.SuggestedPrompt);
+		if ('string'===typeof suggestions?.AspectRatio) this.SetRatio(suggestions.AspectRatio);
 	};
 	_['public'].GetLocale=function () {
 		let locale=navigator.language||'en';

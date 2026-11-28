@@ -15,7 +15,7 @@ var Sources=Function.extend(Object, function () {
 			, ['DrawRectangle', Bundle.SourceUrl('extensions/DrawRectangle.js')]
 			, ['Upscale', Bundle.SourceUrl('extensions/Upscale.js')]
 		];
-		return entries.map(([name, url, readyMember])=>new Source(name, url, readyMember));
+		return entries.map(([name, url, readyMember])=>new Source(name, url, readyMember, true));
 	};
 	_['protected'].InstalledNames=function () { return [..._(this).m_installed.keys()]; };
 	_['public'].GetInstalled=function (name) { return _(this).m_installed.get(name); };
@@ -39,24 +39,24 @@ var Sources=Function.extend(Object, function () {
 		});
 		return files;
 	};
-	_['public'].ReadCompiledSource=function (args={}) {
-		if ('string'!==typeof args.file) return {message: `
+	_['public'].ReadCompiledSource=function (args) {
+		if ('string'!==typeof args.file) return new MethodResult(`
 Compiled source files: ${JSON.stringify(this.CompiledNames())}
-`};
+`, null);
 		let compiled=_(this).GetCompiled();
 		if (!compiled.has(args.file)) throw new Error(`
 Compiled source file not found: ${args.file}
 `);
-		return {message: `
+		return new MethodResult(`
 ${args.file}:
 ${compiled.get(args.file)}
-`};
+`, null);
 	};
-	_['public'].ReadRemoteSource=async function (args={}) {
+	_['public'].ReadRemoteSource=async function (args) {
 		let entries=_(this).GetEntries();
-		if ('string'!==typeof args.name) return {message: `
-Remote source entries: ${JSON.stringify(entries.map((entry)=>({name: entry.Name, url: entry.Value, readyMember: entry.ReadyMember})))}
-`};
+		if ('string'!==typeof args.name) return new MethodResult(`
+Remote source entries: ${JSON.stringify(entries)}
+`, null);
 		let entry=entries.find((item)=>item.Name===args.name||item.Value.split(/[?#]/)[0].split('/').pop()===args.name);
 		if (!entry) throw new Error(`
 Remote source not found: ${args.name}
@@ -65,32 +65,32 @@ Remote source not found: ${args.name}
 		if (!response.ok) throw new Error(`
 Failed to read ${args.name}: HTTP ${response.status}
 `);
-		return {message: `
+		return new MethodResult(`
 ${entry.Name}:
 ${await response.text()}
-`};
+`, null);
 	};
-	_['public'].ReadInstalledSource=async function (args={}) {
+	_['public'].ReadInstalledSource=async function (args) {
 		let sources=_(this).m_installed;
-		if ('string'!==typeof args.name) return {message: `
+		if ('string'!==typeof args.name) return new MethodResult(`
 Installed modules: ${JSON.stringify(_(this).InstalledNames())}
-`};
+`, null);
 		let entry=sources.get(args.name);
 		if (!entry) throw new Error(`
 Installed module not found: ${args.name}
 `);
-		if (!entry.Remote) return {message: `
+		if (!entry.Remote) return new MethodResult(`
 ${args.name}:
 ${entry.Value}
-`};
+`, null);
 		let response=await fetch(entry.Value);
 		if (!response.ok) throw new Error(`
 Failed to read ${args.name}: HTTP ${response.status}
 `);
-		return {message: `
+		return new MethodResult(`
 ${args.name}:
 ${await response.text()}
-`};
+`, null);
 	};
 	_['protected'].m_hostSourceUrl=null;
 	_['protected'].m_installed=null;

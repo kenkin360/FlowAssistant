@@ -34,7 +34,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 	};
 	_['public'].Localize=function () { _(this).m_view.Localize((key)=>this.Text(key)); };
 
-	_['public'].Mount=function (name, element, slot='header') { return _(this).m_view.Mount(name, element, slot, this.Slots); };
+	_['public'].Mount=function (name, element, slot) { return _(this).m_view.Mount(name, element, slot, this.Slots); };
 	_['public'].Unmount=function (name) { _(this).m_view.Unmount(name); };
 	_['public'].Mounted=function () { return _(this).m_view.Mounted(); };
 
@@ -77,7 +77,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent(workspace);
 				else await imageService.DownloadCurrent();
 				break;
-			case 'generate': await imageService.GenerateCurrent({prompt: $this.m_view.GetPrompt(), aspectRatio: $this.m_view.GetRatio()}); break;
+			case 'generate': await imageService.GenerateCurrent(new ImageGenerationRequest($this.m_view.GetPrompt(), $this.m_view.GetRatio(), false)); break;
 			case 'info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'flex'); break;
 			case 'close-info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'none'); break;
 			case 'copy-prompt': await navigator.clipboard.writeText($this.m_view.GetPrompt()); break;

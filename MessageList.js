@@ -27,6 +27,10 @@ var MessageList=Function.extend(Object, function () {
 				}
 				preview.src=url(message.Attachment);
 				if (message.Attachment instanceof Media.Image) preview.alt='Media result';
+				preview.addEventListener(message.Attachment instanceof Media.Video?'loadedmetadata':'load', ()=>{
+					let area=list.closest('.ca-messages');
+					if (area) area.scrollTop=area.scrollHeight;
+				});
 				item.appendChild(preview);
 			}
 			let body=document.createElement('div');
@@ -34,20 +38,20 @@ var MessageList=Function.extend(Object, function () {
 			item.appendChild(body);
 			return item;
 		});
-		let pendingIndex=consulting?messages.findLastIndex((message)=>'user'===message.Sender):-1;
-		if (pendingIndex>=0) {
+		if (consulting&&messages.at(-1)?.Sender==='user') {
 			let thinking=document.createElement('div');
 			thinking.className='ca-thinking';
 			thinking.setAttribute('role', 'status');
 			thinking.setAttribute('aria-live', 'polite');
 			thinking.textContent=text('thinking');
-			items.splice(pendingIndex+1, 0, thinking);
+			items.push(thinking);
 		}
 		list.replaceChildren(...items);
 		$this.m_lastMessages=messages;
 		$this.m_lastNode=list;
 		$this.m_lastConsulting=consulting;
-		(list.querySelector('.ca-thinking')||list.lastElementChild)?.scrollIntoView({block: 'nearest'});
+		let area=list.closest('.ca-messages');
+		if (area) area.scrollTop=area.scrollHeight;
 	};
 	_['protected'].m_lastMessages=null;
 	_['protected'].m_lastNode=null;

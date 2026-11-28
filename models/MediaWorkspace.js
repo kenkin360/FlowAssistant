@@ -38,13 +38,6 @@ var MediaWorkspace=Function.extend(Object, function () {
 		if (!media) return null;
 		return {...media.toJSON(), base64: media.Data?await media.ToBase64():undefined};
 	};
-	_['public'].Describe=function (media) {
-		if (!media) return null;
-		return {type: media instanceof Media.Image?'image':media instanceof Media.Video?'video':'media',
-			id: media.Id, title: media.Title, mimeType: media.MimeType, mediaId: media.MediaId,
-			...(media instanceof Media.Image?{width: media.Width, height: media.Height}:{}),
-			...(media instanceof Media.Video?{durationSeconds: media.DurationSeconds, resolution: media.Resolution}:{})};
-	};
 	_['public'].ToMedia=function (value) {
 		if (!value||value instanceof Media) return value;
 		return this.History.find((entry)=>entry.Id===value.id)||Media.From(value);

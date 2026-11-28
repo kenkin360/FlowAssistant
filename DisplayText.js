@@ -34,7 +34,7 @@ ${JSON.stringify((DisplayText.Default).Entries)}
 	}
 
 	_['public'].Entries={
-		tagline: 'Describe an edit to use local tools, or generate an image'
+		tagline: 'Describe what you want to do'
 		, help: 'Help'
 		, target: 'Target Media'
 		, conversation: 'Conversation'
@@ -46,7 +46,7 @@ ${JSON.stringify((DisplayText.Default).Entries)}
 		, generate: 'Generate image'
 		, ratio: 'Output ratio'
 		, original: 'Original'
-		, input: 'Discuss an idea, draw a rectangle, inspect code, or create a local tool…'
+		, input: 'Write a message…'
 		, send: 'Send'
 		, stop: 'Stop'
 		, close: 'Close'
@@ -54,7 +54,7 @@ ${JSON.stringify((DisplayText.Default).Entries)}
 		, agent: 'Assistant'
 		, promptDraft: 'Combined prompt draft: '
 		, copy: 'Copy'
-		, thinking: 'Thinking and running local operations…'
+		, thinking: 'Thinking…'
 		, waiting: 'Waiting to start…'
 		, stopped: 'Stopped'
 	};
