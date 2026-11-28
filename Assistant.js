@@ -8,7 +8,7 @@ var Assistant=Function.extend(Object, function () {
 		$this.m_listeners=new Set();
 		$this.m_activeTurn=null;
 		$this.m_ready=Promise.resolve();
-		$this.m_methods=new Methods(sourceUrl, $this.m_conversation, (event, details, attachment)=>$this.NotifyAssistant(event, details, attachment), ()=>$this.Notify());
+		$this.m_methods=new Methods(sourceUrl, (event, details, attachment)=>$this.NotifyAssistant(event, details, attachment), ()=>$this.Notify());
 	}
 	_['public'].GetMethods=function () { return _(this).m_methods; };
 	_['public'].GetMessages=function () { return _(this).m_conversation.GetMessages(); };
@@ -27,9 +27,9 @@ var Assistant=Function.extend(Object, function () {
 			catch (error) { console.error('Subscriber failed:', error); }
 		}
 	};
-	_['public'].Reply=function (response) {
-		_(this).m_conversation.Add('assistant', response.Reply, response);
-		_(this).Notify(response);
+	_['public'].Reply=function (response, attachment) {
+		_(this).m_conversation.Add('assistant', response.Reply, attachment);
+		_(this).Notify();
 	};
 	_['public'].ReportError=function (error) {
 		try {
@@ -69,7 +69,7 @@ ${String(raw??'')}
 		}
 		return null;
 	};
-	_['public'].Consult=async function (getRequest, turn) {
+	_['public'].Consult=async function (getRequest, turn, complete) {
 		let $this=_(this);
 		let completed=[];
 		let lastResult=null;
@@ -78,21 +78,36 @@ ${String(raw??'')}
 			let response=await this.RequestResponse(request.Prompt, request.Options, turn?.signal);
 			if (turn?.signal.aborted) return null;
 			if (!response.MethodName) {
-				return $this.m_methods.CompleteResponse(lastResult, response.Reply);
+				complete?.(response, lastResult);
+				return;
 			}
 			if (response.Reply.trim()) this.Reply(new Response(response.Reply));
 			if (turn?.signal.aborted) return null;
 			try {
 				lastResult=await $this.m_methods.Invoke(response.MethodName, response.Arguments);
-				completed.push(new MethodExecution(response.MethodName, lastResult, null));
+				completed.push(`
+${response.MethodName} 的實際回傳：
+${_(this).GetResultText(lastResult)}
+`);
 			}
 			catch (error) {
 				console.error('Method failed:', error);
 				lastResult=null;
-				completed.push(new MethodExecution(response.MethodName, null, error?.message||String(error)));
+				completed.push(`
+${response.MethodName} 執行失敗：
+${error?.message||String(error)}
+`);
 			}
 		}
 		return null;
+	};
+	_['protected'].GetResultText=function (value) {
+		if ('string'===typeof value) return value;
+		try { return JSON.stringify(value)??String(value); }
+		catch (error) {
+			console.error('Unable to serialize method result:', error);
+			return String(value);
+		}
 	};
 	_['public'].GetInstruction=function (runtime, methods) {
 		return `
@@ -106,7 +121,7 @@ MethodName 使用現有類型與其方法的完整名稱；Arguments 是該方�
 	};
 	_['protected'].GetRequest=async function (message, completed) {
 		let methods=_(this).m_methods;
-		let runtime=methods.Modules.InspectRuntime({}).Message;
+		let runtime=methods.Modules.InspectRuntime({});
 		return methods.GetRequest(message, completed, this.GetMessages(), this.GetInstruction(runtime, methods.GetInstruction()));
 	};
 	_['public'].Send=async function (value) {
@@ -134,8 +149,8 @@ MethodName 使用現有類型與其方法的完整名稱；Arguments 是該方�
 	};
 	_['protected'].Process=async function (message, turn) {
 		await _(this).m_ready;
-		let result=await this.Consult((completed)=>_(this).GetRequest(message, completed), turn);
-		if (result) this.Reply(result);
+		await this.Consult((completed)=>_(this).GetRequest(message, completed), turn,
+			(response, result)=>this.Reply(response, _(this).m_methods.GetAttachment(result)));
 	};
 	_['protected'].NotifyAssistant=async function (event, details, attachment) {
 		try {
@@ -151,9 +166,8 @@ ${recent}
 `;
 			let options={systemInstruction: this.GetInstruction('', '')};
 			let request=new AssistantRequest(prompt, options);
-			let result=await this.Consult((completed)=>this.GetMethods().GetContinuation(request, completed), null);
-			if (attachment) result.Attachment=$this.m_methods.NormalizeAttachment(attachment);
-			this.Reply(result);
+			await this.Consult((completed)=>this.GetMethods().GetContinuation(request, completed), null,
+				(response, result)=>this.Reply(response, attachment?$this.m_methods.NormalizeAttachment(attachment):$this.m_methods.GetAttachment(result)));
 		}
 		catch (error) { this.ReportError(error); }
 	};

@@ -14,7 +14,7 @@ var ConversationOpening=Function.extend(Object, function () {
 		try { await methods.Modules.Initialize(); }
 		catch (error) { console.error('Module startup failed:', error); setupError=error?.message||String(error); }
 		try {
-			let runtime=methods.Modules.InspectRuntime({}).Message;
+			let runtime=methods.Modules.InspectRuntime({});
 			let prompt=`
 請根據實際檢查結果，作為對話參與者發出第一則訊息。
 啟動結果：${setupError||'success'}。
@@ -23,8 +23,11 @@ var ConversationOpening=Function.extend(Object, function () {
 			let options={systemInstruction: assistant.GetInstruction(runtime, methods.GetInstruction())};
 			let previous=assistant.GetMessages().length;
 			let request=new AssistantRequest(prompt, options);
-			let result=await assistant.Consult((completed)=>methods.GetContinuation(request, completed), null);
-			if (!previous&&!assistant.GetMessages().slice(previous).some((entry)=>entry.Sender==='user')) assistant.Reply(result);
+			await assistant.Consult((completed)=>methods.GetContinuation(request, completed), null, (response, result)=>{
+				if (!previous&&!assistant.GetMessages().slice(previous).some((entry)=>entry.Sender==='user')) {
+					assistant.Reply(response, methods.GetAttachment(result));
+				}
+			});
 		}
 		catch (error) { console.error('Conversation opening failed:', error); assistant.ReportError(error); }
 	};

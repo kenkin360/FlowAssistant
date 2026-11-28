@@ -44,9 +44,7 @@ var ImageService=Function.extend(Object, function () {
 			if (!image) return;
 			this.GetWorkspace().Add(image);
 			await _(this).m_notify('Media selected', new OperationDetails(image.Title, null, image.Width, image.Height, null), image);
-			return new MethodResult(`
-Media selected: ${image.Title}
-`, this.GetWorkspace().GetActiveMedia());
+			return image;
 		}
 		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
 	};
@@ -56,9 +54,7 @@ Media selected: ${image.Title}
 			if (!image) return;
 			this.GetWorkspace().Add(image);
 			await _(this).m_notify('Camera image captured', new OperationDetails(image.Title, null, image.Width, image.Height, null), image);
-			return new MethodResult(`
-Camera image captured: ${image.Title}
-`, this.GetWorkspace().GetActiveMedia());
+			return image;
 		}
 		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
 	};
@@ -70,12 +66,10 @@ Camera image captured: ${image.Title}
 		$this.m_generating=true;
 		workspace.NotifyChanged();
 		try {
-			let selected=workspace.GetActiveMedia();
-			let result=await this.Generate(new ImageGenerationRequest(text, options.AspectRatio, selected instanceof Media.Image));
-			let image=result.Artifact;
+			let image=await this.Generate(options);
 			workspace.Add(image);
 			await $this.m_notify('Image generation completed', new OperationDetails(image.Title, text, image.Width, image.Height, null), image);
-			return new MethodResult(result.Message, workspace.GetActiveMedia());
+			return image;
 		}
 		catch (error) { console.error('Image generation failed:', error); await $this.m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
 		finally { $this.m_generating=false; workspace.NotifyChanged(); }
@@ -84,8 +78,8 @@ Camera image captured: ${image.Title}
 		try {
 			let workspace=this.GetWorkspace();
 			let selected=workspace.GetActiveMedia();
-			if (selected instanceof Media.Image) await this.Download(await workspace.GetLegacyMedia(selected));
-			return new MethodResult(selected instanceof Media.Image?'Image downloaded.':'No image selected.', null);
+			if (selected instanceof Media.Image) return await this.Download(await workspace.GetLegacyMedia(selected));
+			return null;
 		}
 		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
 	};
@@ -108,7 +102,7 @@ Camera image captured: ${image.Title}
 		return `${dimensions.Width/a}:${dimensions.Height/a}`;
 	};
 
-	_['public'].ReadMethodResult=async function (value, image, methodName) {
+	_['public'].ReadImageOutput=async function (value, image, methodName) {
 		let output=value&&'object'===typeof value&&'image' in value?value.image:value;
 		if (!output||'string'!==typeof output.base64||!/^image\//.test(output.mimeType)) return null;
 		let dimensions=await _(this).GetDimensions(output);
@@ -192,16 +186,14 @@ Camera image captured: ${image.Title}
 		});
 		result=await _(this).GetContent(result);
 		let dimensions=await _(this).GetDimensions(result);
-		return new MethodResult(`
-Image generated and saved to Flow Assets (${result.mediaId}).
-`, new Media.Image({
+		return new Media.Image({
 				id: `ver_${Date.now()}`
 				, base64: result.base64
 				, mimeType: result.mimeType
 				, mediaId: result.mediaId
 				, width: dimensions.Width, height: dimensions.Height
 				, title: `修改版本 #${index}`
-			}));
+			});
 	};
 
 	_['public'].Download=function (image) {

@@ -1,14 +1,13 @@
 var Methods=Function.extend(Object, function () {
 	var _=this(Methods);
 	Methods=_[Methods];
-	function Methods(sourceUrl, conversation, notify, changed) {
+	function Methods(sourceUrl, notify, changed) {
 		_['base'].apply(this, arguments);
 		this.Sources=new Sources(sourceUrl);
 		this.Modules=new Modules(this.Sources);
 		let media=new MediaWorkspace(changed);
 		this.ImageService=new ImageService(media, notify);
 		this.VideoService=new VideoService(media);
-		this.Conversation=conversation;
 	}
 	_['public'].GetInstruction=function () {
 		return `
@@ -42,6 +41,9 @@ ${completed.map(JSON.stringify).join('\n')}
 請依這些結果決定是否需要下一個方法，或根據結果回答。
 `, request.Options);
 	};
+	_['public'].GetAttachment=function (value) {
+		return value instanceof Media.Image||value instanceof Media.Video?value:null;
+	};
 	_['public'].Invoke=async function (methodName, args) {
 		if ('string'!==typeof methodName||!/^[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*$/.test(methodName)||methodName.endsWith('.constructor')) {
 			throw new Error('MethodName must identify an existing method on a type.');
@@ -59,53 +61,27 @@ Method not found: ${methodName}
 		await this.Modules.GetStartup();
 		let input=local?undefined:await this.ImageService.GetLegacyModuleInput();
 		let value=await method.call(target, args, input);
-		let image=input?.image??null;
-		let output=null;
-		let message=value instanceof MethodResult?value.Message:value?.message;
-		if (value instanceof Media) output=value;
-		else if (value instanceof MethodResult) output=value.Artifact;
-		else if (value&&'object'===typeof value&&'artifact' in value) {
-			output=value.artifact;
-			if (!output||'object'!==typeof output) throw new Error('A media result needs content and a MIME type.');
-			if (!(output instanceof Media)&&!output.data&&!output.base64&&output.mediaId) {
-				let content=await Flow.media.getBase64({mediaId: output.mediaId});
-				output={...output, ...content, mediaId: output.mediaId};
+		let output=value instanceof Media?value:value?.artifact??value?.image??value;
+		if (output&&'object'===typeof output&&!(output instanceof Media)&&output.mediaId&&output.mimeType&&!output.data&&!output.base64) {
+			let content=await Flow.media.getBase64({mediaId: output.mediaId});
+			output={...output, ...content, mediaId: output.mediaId};
+		}
+		if (output instanceof Media||output?.mimeType&&(output.base64||output.data instanceof Blob)) {
+			if (!(output instanceof Media)) {
+				output=/^image\//.test(output.mimeType)&&output.base64
+					?await this.ImageService.ReadImageOutput(output, input?.image, methodName)
+					:this.ImageService.GetWorkspace().ToMedia(output);
 			}
-			if (!(output instanceof Media)&&(!output.mimeType||!output.base64&&!(output.data instanceof Blob))) {
-				throw new Error('A media result needs content and a MIME type.');
-			}
-			if (!(output instanceof Media)&&/^image\//.test(output.mimeType)&&output.base64) {
-				output=await this.ImageService.ReadMethodResult(output, image, methodName);
+			if (output) {
+				this.ImageService.GetWorkspace().Add(output);
+				return output;
 			}
 		}
-		else if (value&&'object'===typeof value&&'image' in value) {
-			output=value.image?.mediaId?value.image:await this.ImageService.ReadMethodResult(value, image, methodName);
-		}
-		else if (value?.base64&&/^image\//.test(value.mimeType)) {
-			output=await this.ImageService.ReadMethodResult(value, image, methodName);
-		}
-		if (output) {
-			let result=this.ImageService.GetWorkspace().Add(output);
-			return new MethodResult('string'===typeof message?message:`
-${methodName} 已完成。
-`, result);
-		}
-		if (value instanceof MethodResult) return value;
-		if (value&&'string'===typeof message) return new MethodResult(message, null);
-		return new MethodResult(`
-${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成')}
-`, null);
-	};
-	_['public'].CompleteResponse=function (result, reply) {
-		let workspace=this.ImageService.GetWorkspace();
-		let current=result?.Artifact||workspace.GetCurrentMedia();
-		let attachment=result?.Artifact instanceof Media.Image||result?.Artifact instanceof Media.Video?result.Artifact:current instanceof Media.Video?current:null;
-		return new ConversationResponse(reply, attachment);
+		return value;
 	};
 	_['public'].NormalizeAttachment=function (value) { return this.ImageService.GetWorkspace().ToMedia(value); };
 	_['public'].Sources=null;
 	_['public'].Modules=null;
 	_['public'].ImageService=null;
 	_['public'].VideoService=null;
-	_['public'].Conversation=null;
 });

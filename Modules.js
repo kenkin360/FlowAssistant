@@ -26,9 +26,9 @@ var Modules=Function.extend(Object, function () {
 			if ('function'!==typeof method) throw new Error(`
 Method not found: ${args.name}.Run
 `);
-			return new MethodResult(`
+			return `
 ${args.name}.Run：${method.Description||String(method)}
-`, null);
+`;
 		}
 		let names=_(this).GetNames();
 		let descriptions=names.map((name)=>{
@@ -36,11 +36,11 @@ ${args.name}.Run：${method.Description||String(method)}
 			let methodName=`${name}.Run`;
 			return description?`${methodName}：${description}`:methodName;
 		});
-		return new MethodResult(`
+		return `
 可呼叫模組：${descriptions.join('；')||'無'}。
 編譯原碼：${JSON.stringify(_(this).m_sources.CompiledNames())}。
 可回復的模組安裝：${_(this).GetVersionCount()}。
-`, null);
+`;
 	};
 	_['protected'].RestoreGlobal=function (name, descriptor) {
 		if (descriptor) descriptor.Restore(globalThis, name);
@@ -55,9 +55,9 @@ ${args.name}.Run：${method.Description||String(method)}
 		else delete this.GetRuntime().Modules[installation.Name];
 		$this.m_sources.SetInstalled(installation.Name, installation.PreviousSource);
 		$this.m_versions.pop();
-		return new MethodResult(`
+		return `
 Restored the previous module definition and registration. ${$this.m_versions.length} earlier installations remain.
-`, null);
+`;
 	};
 	_['public'].Initialize=function () {
 		let $this=_(this);
@@ -84,9 +84,9 @@ ${name} has an invalid Run method.
 		runtime.Modules[name]=value;
 		this.m_sources.SetInstalled(name, new Source(name, source, undefined, remote));
 		if (track) this.m_versions.push(installation);
-		return new MethodResult(`
+		return `
 ${name} loaded. Callable: ${'function'===typeof value.Run?'Run':'(none)'}. Reversible installations: ${this.m_versions.length}.
-`, null);
+`;
 	};
 	_['protected'].LoadModule=async function (source, name, Type, readyMember, track) {
 		let $this=_(this);
@@ -94,9 +94,9 @@ ${name} loaded. Callable: ${'function'===typeof value.Run?'Run':'(none)'}. Rever
 		if ('string'!==typeof source||!source.trim()) throw new Error('Provide module source or a script URL.');
 		if ('function'!==typeof Type||!(Type.prototype instanceof Resource)) throw new Error('Provide a Resource type for the module.');
 		let remote=Type===Resource.Module||Type.prototype instanceof Resource.Module;
-		if (remote&&$this.GetRuntime().Modules[name]) return new MethodResult(`
+		if (remote&&$this.GetRuntime().Modules[name]) return `
 ${name} is already loaded.
-`, null);
+`;
 		let previousGlobal=Binding.Capture(globalThis, name);
 		try {
 			let value=await new Type(name, source, readyMember);

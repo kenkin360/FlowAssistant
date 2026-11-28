@@ -70,7 +70,7 @@ var VideoService=Function.extend(Object, function () {
 			, durationSeconds
 			, resolution
 		});
-		return new MethodResult(`Video generated and saved to Flow Assets (${artifact.MediaId}).`, artifact);
+		return artifact;
 	};
 
 	_['public'].Download=function (video) {

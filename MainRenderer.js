@@ -77,7 +77,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent();
 				else await imageService.DownloadCurrent();
 				break;
-			case 'generate': await imageService.GenerateCurrent(new ImageGenerationRequest($this.m_view.GetPrompt(), $this.m_view.GetRatio(), false)); break;
+			case 'generate': await imageService.GenerateCurrent(new ImageGenerationRequest($this.m_view.GetPrompt(), $this.m_view.GetRatio(), workspace.GetActiveMedia() instanceof Media.Image)); break;
 			case 'info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'flex'); break;
 			case 'close-info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'none'); break;
 			case 'copy-prompt': await navigator.clipboard.writeText($this.m_view.GetPrompt()); break;
