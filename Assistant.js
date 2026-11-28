@@ -16,17 +16,21 @@ var Assistant=Function.extend(Object, function () {
 			try { value=JSON.parse(raw); }
 			catch (error) { invalid=error; }
 			if (!invalid) {
-				if (value&&'object'===typeof value&&!Array.isArray(value)&&(value.reply==null||'string'===typeof value.reply)) {
+				let method=value?.MethodName;
+				let hasMethod='string'===typeof method&&!!method.trim();
+				let validMethod=method==null||hasMethod;
+				let validReply=hasMethod?(value.reply==null||'string'===typeof value.reply):('string'===typeof value?.reply&&!!value.reply.trim());
+				if (value&&'object'===typeof value&&!Array.isArray(value)&&validMethod&&validReply) {
 					return new AssistantResponse(value);
 				}
-				invalid='Expected a JSON object with a text reply.';
+				invalid='Expected a JSON object with a nonempty reply or a MethodName.';
 			}
 			console.warn('Invalid assistant response:', invalid, raw);
 			request=`
 ${prompt}
 上一則回應：
 ${String(raw??'')}
-請重新產生可由 JSON.parse 解析的單一 JSON 物件。
+一般回覆請提供非空的 reply；呼叫方法時提供 MethodName 與 Arguments，reply 可以省略。請重新產生單一標準 JSON 物件。
 `;
 		}
 		return null;
