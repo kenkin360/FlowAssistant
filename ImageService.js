@@ -22,21 +22,9 @@ var ImageService=Function.extend(Object, function () {
 	_['public'].GetInstruction=function () {
 		return '影像生成使用 MethodName: ImageService.Generate，Arguments 為 {prompt,aspectRatio}；可選 useCurrentImage: true 以目前選取的影像作參考。';
 	};
-	_['public'].GetRequestContext=async function () {
-		let workspace=this.GetWorkspace();
-		let selected=workspace.GetActiveMedia();
-		let artifact=workspace.GetCurrentMedia();
-		let info=selected instanceof Media.Image?await _(this).GetDimensions(await workspace.GetLegacyMedia(selected)):null;
-		let dimensions=info?`${info.Width} × ${info.Height} (${selected.MimeType})`:'無';
-		let text=selected||artifact?`
-目前影像：${dimensions}；目前產物：${JSON.stringify(artifact)}
-`:'';
-		let images=[];
-		if (selected instanceof Media.Image) {
-			let image=await workspace.GetLegacyMedia(selected);
-			images=[{base64: image.base64, mimeType: image.mimeType}];
-		}
-		return new RequestContext(text, images);
+	_['public'].GetRequestImages=async function (attachment) {
+		if (!(attachment instanceof Media.Image)) return [];
+		return [{base64: await attachment.ToBase64(), mimeType: attachment.MimeType}];
 	};
 	_['public'].SelectCurrent=async function () {
 		try {

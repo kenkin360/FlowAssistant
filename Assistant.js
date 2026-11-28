@@ -124,13 +124,13 @@ MethodName 使用現有類型與其方法的完整名稱；Arguments 是該方�
 		let runtime=methods.Modules.InspectRuntime({});
 		return methods.GetRequest(message, completed, this.GetMessages(), this.GetInstruction(runtime, methods.GetInstruction()));
 	};
-	_['public'].Send=async function (value) {
+	_['public'].Send=async function (value, attachment) {
 		let $this=_(this);
 		let message=String(value??'').trim();
 		if (!message||this.IsConsulting()) return;
 		let turn=$this.m_activeTurn=new AbortController();
 		try {
-			$this.m_conversation.Add('user', message);
+			$this.m_conversation.Add('user', message, attachment);
 			_(this).Notify();
 			await $this.Process(message, turn);
 		}

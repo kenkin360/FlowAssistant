@@ -18,18 +18,26 @@ ${this.VideoService.GetInstruction()}
 	};
 	_['public'].GetRequest=async function (message, completed, messages, instruction) {
 		let prior=messages.slice();
-		if (prior.at(-1)?.Sender==='user'&&prior.at(-1)?.Text===message) prior.pop();
-		let history=prior.map((entry)=>`${entry.Sender}: ${entry.Text}`).join('\n\n');
-		let context=await this.ImageService.GetRequestContext();
+		let current=prior.at(-1)?.Sender==='user'&&prior.at(-1)?.Text===message?prior.pop():null;
+		let history=prior.map((entry)=>{
+			let attachment=entry.Attachment?`
+附件：${JSON.stringify(entry.Attachment)}
+`:'';
+			return `${entry.Sender}: ${entry.Text}${attachment}`;
+		}).join('\n\n');
+		let attachment=current?.Attachment?`
+本輪附件：${JSON.stringify(current.Attachment)}
+`:'';
 		let prompt=`
-${context.Text}
 先前對話：
 ${history}
 本輪要求：
 ${message}
+${attachment}
 `;
 		let options={systemInstruction: instruction};
-		if (context.Images.length) options.images=context.Images;
+		let images=await this.ImageService.GetRequestImages(current?.Attachment);
+		if (images.length) options.images=images;
 		return this.GetContinuation(new AssistantRequest(prompt, options), completed);
 	};
 	_['public'].GetContinuation=function (request, completed) {

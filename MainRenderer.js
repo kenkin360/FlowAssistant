@@ -151,7 +151,8 @@ var MainRenderer=Function.extend(React.Component, function () {
 		let input=this.Node('input');
 		let value=input?.value;
 		if (input) input.value='';
-		return $this.m_assistant.Send(value);
+		let attachment=$this.m_assistant.GetMethods().ImageService.GetWorkspace().GetActiveMedia();
+		return $this.m_assistant.Send(value, attachment);
 	};
 
 	_['protected'].m_assistant=null;
