@@ -7,8 +7,7 @@ var Conversation=Function.extend(Object, function () {
 	}
 	_['public'].GetMessages=function () { return _(this).m_messages; };
 	_['public'].Add=function (sender, text, attachment) {
-		let message=new Message(`${sender}_${Date.now()}_${Math.random()}`, sender, text,
-			new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}), attachment);
+		let message=new Message(`${sender}_${Date.now()}_${Math.random()}`, sender, text, new Date(), attachment);
 		_(this).m_messages=[..._(this).m_messages, message];
 		return message;
 	};

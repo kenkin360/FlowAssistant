@@ -37,9 +37,11 @@ var Bundle=Function.extend(Function, function () {
 
 	Bundle.Config=[
 		['MainRenderer', Bundle.SourceUrl('MainRenderer.js')]
+		, ['MediaRenderer', Bundle.SourceUrl('MediaRenderer.js')]
+		, ['ConversationRenderer', Bundle.SourceUrl('ConversationRenderer.js')]
+		, ['ConversationMediator', Bundle.SourceUrl('ConversationMediator.js')]
 		, ['DisplayText', Bundle.SourceUrl('DisplayText.js')]
 		, ['Assistant', Bundle.SourceUrl('Assistant.js')]
-		, ['ConversationOpening', Bundle.SourceUrl('ConversationOpening.js')]
 		, ['Methods', Bundle.SourceUrl('Methods.js')]
 		, ['Conversation', Bundle.SourceUrl('Conversation.js')]
 		, ['HtmlNode', 'https://esm.sh/gh/kenkin360/FlowerX/HtmlNode.js?raw']
@@ -49,9 +51,6 @@ var Bundle=Function.extend(Function, function () {
 		, ['MediaWorkspace', Bundle.SourceUrl('MediaWorkspace.js')]
 		, ['Message', Bundle.SourceUrl('models/Message.js')]
 		, ['Media', Bundle.SourceUrl('models/Media.js')]
-		, ['View', Bundle.SourceUrl('View.js')]
-		, ['MessageList', Bundle.SourceUrl('MessageList.js')]
-		, ['HistoryList', Bundle.SourceUrl('HistoryList.js')]
 		, ['Modules', Bundle.SourceUrl('Modules.js')]
 		, ['Binding', Bundle.SourceUrl('Binding.js')]
 		, ['Installation', Bundle.SourceUrl('models/Installation.js')]
@@ -63,7 +62,9 @@ var Bundle=Function.extend(Function, function () {
 		, ['Dimensions', Bundle.SourceUrl('models/Dimensions.js')]
 		, ['ImageGenerationRequest', Bundle.SourceUrl('models/ImageGenerationRequest.js')]
 		, ['cv', 'https://esm.sh/gh/TechStark/opencv-js/dist/opencv.js?raw', 'Mat']
-		, ['agentTemplate', Bundle.SourceUrl('views/agent.html.js')]
+		, ['conversationTemplate', Bundle.SourceUrl('views/conversation.html.js')]
+		, ['mediaTemplate', Bundle.SourceUrl('views/media.html.js')]
+		, ['mainTemplate', Bundle.SourceUrl('views/main.html.js')]
 	];
 });
 

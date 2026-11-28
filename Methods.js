@@ -1,43 +1,37 @@
 var Methods=Function.extend(Object, function () {
 	var _=this(Methods);
 	Methods=_[Methods];
-	function Methods(sourceUrl, notify, changed) {
+	function Methods(sourceUrl, moduleAdapter) {
 		_['base'].apply(this, arguments);
 		this.Sources=new Sources(sourceUrl);
 		this.Modules=new Modules(this.Sources);
-		let media=new MediaWorkspace(changed);
-		this.ImageService=new ImageService(media, notify);
-		this.VideoService=new VideoService(media);
+		_(this).m_moduleAdapter=moduleAdapter??null;
 	}
 	_['public'].GetInstruction=function () {
 		return `
-${this.Modules.GetInstruction()}
-${this.ImageService.GetInstruction()}
-${this.VideoService.GetInstruction()}
+${Object.values(this).filter((value)=>'function'===typeof value?.GetInstruction).map((value)=>value.GetInstruction()).join('\n')}
 `;
 	};
 	_['public'].GetRequest=async function (message, completed, messages, instruction) {
-		let prior=messages.slice();
-		let current=prior.at(-1)?.Sender==='user'&&prior.at(-1)?.Text===message?prior.pop():null;
+		let prior=messages.filter((entry)=>entry!==message);
 		let history=prior.map((entry)=>{
 			let attachment=entry.Attachment?`
 附件：${JSON.stringify(entry.Attachment)}
 `:'';
 			return `${entry.Sender}: ${entry.Text}${attachment}`;
 		}).join('\n\n');
-		let attachment=current?.Attachment?`
-本輪附件：${JSON.stringify(current.Attachment)}
+		let attachment=message.Attachment?`
+本輪附件：${JSON.stringify(message.Attachment)}
 `:'';
 		let prompt=`
 先前對話：
 ${history}
 本輪要求：
-${message}
+${message.Text}
 ${attachment}
 `;
 		let options={systemInstruction: instruction};
-		let images=await this.ImageService.GetRequestImages(current?.Attachment);
-		if (images.length) options.images=images;
+		Object.assign(options, await _(this).m_moduleAdapter?.GetRequestOptions?.(message.Attachment));
 		return this.GetContinuation(new AssistantRequest(prompt, options), completed);
 	};
 	_['public'].GetContinuation=function (request, completed) {
@@ -50,13 +44,9 @@ ${completed.map(JSON.stringify).join('\n')}
 `, request.Options);
 	};
 	_['public'].GetAttachment=function (value) {
-		if (value instanceof Media.Image||value instanceof Media.Video) return value;
-		let media=value?.artifact;
-		if (media instanceof Media.Image||media instanceof Media.Video) return media;
-		media=value?.image;
-		return media instanceof Media.Image||media instanceof Media.Video?media:null;
+		return _(this).m_moduleAdapter?.GetAttachment?.(value)??null;
 	};
-	_['public'].Invoke=async function (methodName, args) {
+	_['public'].Invoke=async function (methodName, args, previousResult) {
 		if ('string'!==typeof methodName||!/^[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*$/.test(methodName)||methodName.endsWith('.constructor')) {
 			throw new Error('MethodName must identify an existing method on a type.');
 		}
@@ -71,33 +61,12 @@ Method not found: ${methodName}
 `);
 		}
 		await this.Modules.GetStartup();
-		let input=local?undefined:await this.ImageService.GetLegacyModuleInput();
+		let input=local?undefined:await _(this).m_moduleAdapter?.GetInvocationInput?.(previousResult);
 		let value=await method.call(target, args, input);
-		let member=value?.artifact!=null?'artifact':value?.image!=null?'image':null;
-		let output=member?value[member]:value;
-		if (output&&'object'===typeof output&&!(output instanceof Media)&&output.mediaId&&output.mimeType&&!output.data&&!output.base64) {
-			let content=await Flow.media.getBase64({mediaId: output.mediaId});
-			output={...output, ...content, mediaId: output.mediaId};
-		}
-		if (output instanceof Media||output?.mimeType&&(output.base64||output.data instanceof Blob)) {
-			if (!(output instanceof Media)) {
-				output=/^image\//.test(output.mimeType)&&output.base64
-					?await this.ImageService.ReadImageOutput(output, input?.image, methodName)
-					:this.ImageService.GetWorkspace().ToMedia(output);
-			}
-			if (output) {
-				this.ImageService.GetWorkspace().Add(output);
-				if (member) {
-					value[member]=output;
-					return value;
-				}
-				return output;
-			}
-		}
-		return value;
+		return _(this).m_moduleAdapter?.CompleteInvocation?_(this).m_moduleAdapter.CompleteInvocation(value, input, methodName):value;
 	};
 	_['public'].Sources=null;
 	_['public'].Modules=null;
-	_['public'].ImageService=null;
-	_['public'].VideoService=null;
+	_['public'].Conversation=null;
+	_['protected'].m_moduleAdapter=null;
 });

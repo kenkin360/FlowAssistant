@@ -4,19 +4,26 @@ var MainRenderer=Function.extend(React.Component, function () {
 	function MainRenderer(props) {
 		let initialize=function () {
 			let $this=_(this);
-			$this.m_view=new View();
-			$this.m_assistant=new Assistant(props.HostSourceUrl);
+			$this.m_root=null;
+			$this.m_urls=new Map();
+			$this.m_mounted=new Map();
+			$this.m_mediaRenderer=new MediaRenderer();
+			$this.m_conversationRenderer=new ConversationRenderer();
+			$this.m_mediator=new ConversationMediator();
+			let workspace=new MediaWorkspace(()=>$this.Update());
+			let assistant;
+			let imageService=new ImageService(workspace, (event, value)=>$this.m_mediator.ReportResult(assistant, event, value));
+			let methods=new Methods(props.HostSourceUrl, imageService);
+			methods.ImageService=imageService;
+			methods.VideoService=new VideoService(workspace);
+			assistant=new Assistant(methods);
+			$this.m_mediator.AddAssistant(assistant);
 			$this.m_unsubscribe=null;
-			let template=document.createElement('template');
-			template.innerHTML=agentTemplate;
-			let shell=template.content.querySelector('.ca-app');
-			let media=shell.querySelector('.ca-left');
-			let chat=shell.querySelector('.ca-right');
-			$this.m_templates={Media: {__html: media.outerHTML}, Chat: {__html: chat.outerHTML}};
-			media.remove();
-			chat.remove();
-			shell.querySelector('.ca-work').remove();
-			$this.m_templates.Shell={__html: `${template.content.querySelector('style').outerHTML}${shell.innerHTML}`};
+			$this.m_templates={
+				Media: {__html: mediaTemplate}
+				, Chat: {__html: conversationTemplate}
+				, Shell: {__html: mainTemplate}
+			};
 			$this.m_modals={};
 			this.state={Focused: 'Chat'};
 		};
@@ -25,89 +32,142 @@ var MainRenderer=Function.extend(React.Component, function () {
 		else initialize.call(this);
 	}
 	_['protected'].Node=function (role) {
-		return _(this).m_view.Node(role);
+		return _(this).m_root?.querySelector(`[data-role="${role}"]`);
+	};
+	_['protected'].SetRoot=function (root) {
+		let $this=_(this);
+		$this.m_root=root;
+		$this.m_mediaRenderer.SetRoot(root?.querySelector('[data-role="media-window"]'));
+		$this.m_conversationRenderer.SetRoot(root?.querySelector('[data-role="chat-window"]'));
+	};
+	_['protected'].GetUrl=function (media) {
+		if (!media?.Data) return '';
+		let urls=_(this).m_urls;
+		if (!urls.has(media)) urls.set(media, URL.createObjectURL(media.Data));
+		return urls.get(media);
+	};
+	_['protected'].PruneUrls=function (media, messages) {
+		let used=new Set([...media.History, ...messages.map((message)=>message.Attachment)]);
+		for (let [entry, url] of _(this).m_urls) if (!used.has(entry)) {
+			URL.revokeObjectURL(url);
+			_(this).m_urls.delete(entry);
+		}
 	};
 
 	_['public'].Slots=['header', 'canvas', 'chat', 'overlay'];
 	_['public'].Text=function (key) {
-		return DisplayText.GetText(_(this).m_view.GetLocale(), key);
+		return DisplayText.GetText(_(this).GetLocale(), key);
 	};
-	_['public'].Localize=function () { _(this).m_view.Localize((key)=>this.Text(key)); };
+	_['protected'].GetLocale=function () {
+		let locale=navigator.language||'en';
+		return /^en(?:-|$)/i.test(locale)?'en':locale;
+	};
+	_['public'].Localize=function () {
+		let root=_(this).m_root;
+		if (!root) return;
+		for (let node of root.querySelectorAll('[data-i18n]')) {
+			if (Object.prototype.hasOwnProperty.call(DisplayText.Default.Entries, node.dataset.i18n)) node.textContent=this.Text(node.dataset.i18n);
+		}
+		for (let node of root.querySelectorAll('[data-i18n-placeholder]')) {
+			if (Object.prototype.hasOwnProperty.call(DisplayText.Default.Entries, node.dataset.i18nPlaceholder)) node.placeholder=this.Text(node.dataset.i18nPlaceholder);
+		}
+	};
 
-	_['public'].Mount=function (name, element, slot) { return _(this).m_view.Mount(name, element, slot, this.Slots); };
-	_['public'].Unmount=function (name) { _(this).m_view.Unmount(name); };
-	_['public'].Mounted=function () { return _(this).m_view.Mounted(); };
+	_['public'].Mount=function (name, element, slot) {
+		if (!name||!(element instanceof HTMLElement)||!this.Slots.includes(slot)) return false;
+		try {
+			let target=_(this).m_root?.querySelector(`[data-slot="${slot}"]`);
+			if (!target) return false;
+			let mounted=_(this).m_mounted;
+			let previous=mounted.get(name);
+			target.appendChild(element);
+			if (previous&&previous!==element) previous.remove();
+			mounted.set(name, element);
+			return true;
+		}
+		catch (error) { console.error('Unable to mount UI element:', error); return false; }
+	};
+	_['public'].Unmount=function (name) {
+		let mounted=_(this).m_mounted;
+		mounted.get(name)?.remove();
+		mounted.delete(name);
+	};
+	_['public'].Mounted=function () { return [..._(this).m_mounted.keys()]; };
 
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
-		$this.m_unsubscribe=$this.m_assistant.Subscribe(()=>this.Update());
-		let root=$this.m_view.GetRoot();
+		$this.m_unsubscribe=$this.m_mediator.Subscribe(()=>$this.Update());
+		let root=$this.m_root;
 		root.onclick=(event)=>{ $this.HandleClick(event).catch((error)=>$this.ReportError(error)); };
 		root.onkeydown=(event)=>{ $this.HandleKeyDown(event).catch((error)=>$this.ReportError(error)); };
 		$this.Update();
 		$this.ArrangeModals();
-		DisplayText.GetInstance($this.m_view.GetLocale()).then(()=>{
-			if (!$this.m_view.GetRoot()) return;
+		DisplayText.GetInstance($this.GetLocale()).then(()=>{
+			if (!$this.m_root) return;
 			this.forceUpdate();
 			$this.Update();
 		}).catch((error)=>$this.ReportError(error));
-		let ready=new ConversationOpening($this.m_assistant).Start(navigator.language).catch((error)=>$this.ReportError(error));
-		$this.m_assistant.SetReady(ready);
+		$this.m_mediator.Start(navigator.language).catch((error)=>$this.ReportError(error));
 	};
 
 	_['protected'].ReportError=function (error) {
 		console.error('UI event failed:', error);
-		_(this).m_assistant.ReportError(error);
+		_(this).m_mediator.ReportError(error);
 	};
 	_['protected'].HandleClick=async function (event) {
 		let $this=_(this);
-		let root=$this.m_view.GetRoot();
-		let target=event.target.closest?.('[data-action],[data-ratio]');
+		let root=$this.m_root;
+		let target=event.target.closest?.('[data-control],[data-ratio]');
 		if (!target||!root?.contains(target)) return;
-		let imageService=$this.m_assistant.GetMethods().ImageService;
-		let workspace=imageService.GetWorkspace();
-		if (target.dataset.ratio) { $this.m_view.SetRatio(target.dataset.ratio); return; }
-		switch (target.dataset.action) {
+		if (this.Node('media-window')?.contains(target)) {
+			let methods=$this.m_mediator.GetAssistant().GetMethods();
+			await $this.m_mediaRenderer.HandleClick(event, methods.ImageService, methods.VideoService);
+			return;
+		}
+		if (this.Node('chat-window')?.contains(target)) {
+			await $this.m_conversationRenderer.HandleClick(event, $this.m_mediator,
+				()=>this.GetActiveMedia());
+			return;
+		}
+		switch (target.dataset.control) {
 			case 'media-window': new HtmlNode(this.Node('media-window')).SetStyle('display', ''); this.setState({Focused: 'Media'}); break;
 			case 'chat-window': new HtmlNode(this.Node('chat-window')).SetStyle('display', ''); this.setState({Focused: 'Chat'}); break;
-			case 'send': if ($this.m_assistant.IsConsulting()) $this.m_assistant.Stop(); else await this.Submit(); break;
-			case 'select': await imageService.SelectCurrent(); break;
-			case 'camera': await imageService.CaptureCurrent(); break;
-			case 'download':
-				if (workspace.GetActiveMedia() instanceof Media.Video) await $this.m_assistant.GetMethods().VideoService.DownloadCurrent();
-				else await imageService.DownloadCurrent();
-				break;
-			case 'generate': await imageService.GenerateCurrent(new ImageGenerationRequest($this.m_view.GetPrompt(), $this.m_view.GetRatio(), workspace.GetActiveMedia() instanceof Media.Image)); break;
 			case 'info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'flex'); break;
 			case 'close-info': new HtmlNode(this.Node('dialog')).SetStyle('display', 'none'); break;
-			case 'copy-prompt': await navigator.clipboard.writeText($this.m_view.GetPrompt()); break;
 		}
 	};
 	_['protected'].HandleKeyDown=async function (event) {
-		if (event.target===this.Node('input')&&'Enter'===event.key&&!event.shiftKey&&!event.isComposing) {
-			event.preventDefault();
-			if (!_(this).m_assistant.IsConsulting()) await this.Submit();
-		}
+		return _(this).m_conversationRenderer.HandleKeyDown(event, _(this).m_mediator,
+			()=>this.GetActiveMedia());
+	};
+	_['protected'].GetActiveMedia=function () {
+		return _(this).m_mediator.GetAssistant().GetMethods().ImageService.GetWorkspace().GetActiveMedia();
 	};
 
 	_['protected'].Update=function () {
-		let imageService=_(this).m_assistant.GetMethods().ImageService;
+		let imageService=_(this).m_mediator.GetAssistant().GetMethods().ImageService;
 		let workspace=imageService.GetWorkspace();
-		_(this).m_view.Update(workspace, _(this).m_assistant.GetMessages(), _(this).m_assistant.IsConsulting(), imageService.IsGenerating(), (key)=>this.Text(key), (id)=>workspace.SelectVersion(id));
+		let messages=_(this).m_mediator.GetMessages();
+		this.Localize();
+		_(this).m_mediaRenderer.Update(workspace, imageService.IsGenerating(), (key)=>this.Text(key), (id)=>workspace.SelectVersion(id), (media)=>this.GetUrl(media));
+		_(this).m_conversationRenderer.Update(messages, _(this).m_mediator.IsConsulting(), (key)=>this.Text(key), (media)=>this.GetUrl(media), this.GetLocale());
+		_(this).PruneUrls(workspace, messages);
 	};
 
 	_['public'].componentWillUnmount=function () {
 		let $this=_(this);
-		_(this).m_assistant.Stop();
-		let root=$this.m_view.GetRoot();
+		_(this).m_mediator.Stop();
+		let root=$this.m_root;
 		if (root) root.onclick=root.onkeydown=null;
 		for (let name of this.Mounted()) this.Unmount(name);
-		$this.m_view.Dispose();
+		$this.m_mediaRenderer.Dispose();
+		for (let url of $this.m_urls.values()) URL.revokeObjectURL(url);
+		$this.m_urls.clear();
 		$this.m_unsubscribe?.();
 	};
 
 	_['protected'].ArrangeModals=function (name) {
-		let root=_(this).m_view.GetRoot();
+		let root=_(this).m_root;
 		if (!root) return;
 		let rect=root.getBoundingClientRect();
 		let header=root.querySelector('header')?.offsetHeight||52;
@@ -129,7 +189,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 
 	_['public'].render=function () {
 		let $this=_(this);
-		return React.createElement('div', {ref: (element)=>$this.m_view.SetRoot(element), className: 'ca-app', 'data-role': 'app', style: {height: '100%', width: '100%'}},
+		return React.createElement('div', {ref: (element)=>$this.SetRoot(element), className: 'ca-app', 'data-role': 'app', style: {height: '100%', width: '100%'}},
 			React.createElement('div', {dangerouslySetInnerHTML: $this.m_templates.Shell}),
 			...[['Media', 'target', 320], ['Chat', 'conversation', 340]].map(([name, title, minimum])=>React.createElement('div', {
 				key: name, className: 'ca-window', 'data-role': name==='Media'?'media-window':'chat-window'
@@ -146,17 +206,12 @@ var MainRenderer=Function.extend(React.Component, function () {
 			}, React.createElement('div', {className: 'ca-modal-content', dangerouslySetInnerHTML: $this.m_templates[name]})))));
 	};
 
-	_['protected'].Submit=function () {
-		let $this=_(this);
-		let input=this.Node('input');
-		let value=input?.value;
-		if (input) input.value='';
-		let attachment=$this.m_assistant.GetMethods().ImageService.GetWorkspace().GetActiveMedia();
-		return $this.m_assistant.Send(value, attachment);
-	};
-
-	_['protected'].m_assistant=null;
-	_['protected'].m_view=null;
+	_['protected'].m_mediator=null;
+	_['protected'].m_root=null;
+	_['protected'].m_urls=null;
+	_['protected'].m_mounted=null;
+	_['protected'].m_mediaRenderer=null;
+	_['protected'].m_conversationRenderer=null;
 	_['protected'].m_unsubscribe=null;
 	_['protected'].m_templates=null;
 	_['protected'].m_modals=null;
