@@ -6,6 +6,13 @@ var VideoService=Function.extend(Object, function () {
 		_['base'].apply(this, arguments);
 	}
 	VideoService.ModelDisplayName='Omni 1.2 Flash';
+	_['public'].GetInstruction=function () {
+		return '產生影片時使用 MethodName: VideoService.Generate，Arguments 為 {prompt,aspectRatio,durationSeconds,resolution}。可選 useCurrentImageAsFirstFrame: true 作為首幀，或 useCurrentImageAsReference: true 作為參考；也可傳 firstFrameImageMediaId、referenceImageMediaIds，或 sourceVideoMediaId 作為影片編輯來源。首幀模式範例：{"prompt":"...","useCurrentImageAsFirstFrame":true}。完成後影片自動存入 Flow Assets。';
+	};
+	_['public'].DownloadCurrent=async function (workspace) {
+		let selected=workspace.GetActiveMedia();
+		if (selected instanceof Media.Video) await this.Download(await workspace.GetLegacyMedia(selected));
+	};
 
 	_['protected'].ResolveImageId=async function (image) {
 		if ('string'===typeof image&&image) return image;
@@ -18,16 +25,19 @@ var VideoService=Function.extend(Object, function () {
 		return upload.mediaId;
 	};
 
-	_['public'].Generate=async function (options={}) {
+	_['public'].Generate=async function (options={}, context={}) {
 		let {prompt, firstFrameImage, referenceImages, sourceVideoMediaId, aspectRatio='16:9', durationSeconds=5, resolution='720p'}=options;
+		if ((options.useCurrentImageAsFirstFrame||options.useCurrentImageAsReference)&&!context.image) throw new Error('No current image is available.');
+		if (options.useCurrentImageAsFirstFrame&&options.firstFrameImageMediaId) throw new Error('Choose one first-frame image.');
+		if (options.useCurrentImageAsFirstFrame) firstFrameImage=context.image;
+		else if (options.firstFrameImageMediaId) firstFrameImage=options.firstFrameImageMediaId;
+		if (options.useCurrentImageAsReference) referenceImages=[context.image, ...(options.referenceImageMediaIds||[])];
+		else if (options.referenceImageMediaIds) referenceImages=options.referenceImageMediaIds;
 		if ('string'!==typeof prompt||!prompt.trim()) throw new Error('Provide a video prompt.');
-		if (!['16:9', '9:16'].includes(aspectRatio)) throw new Error('Unsupported video aspect ratio.');
-		if (!Number.isInteger(durationSeconds)||durationSeconds<3||durationSeconds>15) throw new Error('Video duration must be 3 to 15 seconds.');
-		if (!['720p', '360p'].includes(resolution)) throw new Error('Unsupported video resolution.');
 		if (firstFrameImage&&referenceImages?.length) throw new Error('A first frame and reference images cannot be used together.');
 		if (firstFrameImage&&sourceVideoMediaId) throw new Error('A first frame and source video cannot be used together.');
 		if (undefined!==sourceVideoMediaId&&('string'!==typeof sourceVideoMediaId||!sourceVideoMediaId)) throw new Error('The source video needs a mediaId.');
-		if (undefined!==referenceImages&&(!Array.isArray(referenceImages)||referenceImages.length>10)) throw new Error('Provide up to 10 reference images.');
+		if (undefined!==referenceImages&&!Array.isArray(referenceImages)) throw new Error('Reference images must be an array.');
 
 		let firstFrameImageMediaId=firstFrameImage?await _(this).ResolveImageId(firstFrameImage):undefined;
 		let referenceImageMediaIds=referenceImages?.length?await Promise.all(referenceImages.map((image)=>_(this).ResolveImageId(image))):undefined;
@@ -44,7 +54,7 @@ var VideoService=Function.extend(Object, function () {
 		if ('string'!==typeof result?.mediaId||!result.mediaId) throw new Error('Flow did not return a saved video mediaId.');
 		let content='string'===typeof result.base64?result:await Flow.media.getBase64({mediaId: result.mediaId});
 		if ('string'!==typeof content?.base64||!content.base64) throw new Error('Flow did not return the generated video content.');
-		return {
+		let artifact={
 			id: `video_${Date.now()}_${Math.random().toString(36).slice(2)}`
 			, mediaId: result.mediaId
 			, mimeType: content.mimeType||result.mimeType
@@ -57,6 +67,7 @@ var VideoService=Function.extend(Object, function () {
 			, resolution
 			, modelDisplayName: VideoService.ModelDisplayName
 		};
+		return {message: `Video generated and saved to Flow Assets (${artifact.mediaId}).`, artifact};
 	};
 
 	_['public'].Download=function (video) {
