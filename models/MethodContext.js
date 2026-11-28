@@ -4,11 +4,15 @@ var MethodContext=Function.extend(Object, function () {
 
 	function MethodContext(image, artifact) {
 		_['base'].apply(this, arguments);
-		this.image=image??null;
-		this.artifact=artifact??null;
+		this.Image=image??null;
+		this.Artifact=artifact??null;
 	}
 
-	_['public'].image=null;
-	_['public'].artifact=null;
-	_['public'].track=true;
+	_['public'].Image=null;
+	_['public'].Artifact=null;
+	_['public'].Track=true;
+
+	_['public'].ToLegacy=function () {
+		return {image: this.Image, artifact: this.Artifact, track: this.Track};
+	};
 });

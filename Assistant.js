@@ -27,13 +27,13 @@ var Assistant=Function.extend(Object, function () {
 			catch (error) { console.error('Subscriber failed:', error); }
 		}
 	};
-	_['public'].Reply=function (text, fields) {
-		_(this).m_conversation.Add('assistant', text, fields);
-		_(this).Notify(fields);
+	_['public'].Reply=function (response) {
+		_(this).m_conversation.Add('assistant', response.Reply, response);
+		_(this).Notify(response);
 	};
 	_['public'].ReportError=function (error) {
 		try {
-			_(this).m_conversation.Add('system', error?.message||String(error), new ResponseDetails());
+			_(this).m_conversation.Add('system', error?.message||String(error));
 			_(this).Notify();
 		}
 		catch (reportError) { console.error('Unable to record failure:', reportError); }
@@ -120,10 +120,9 @@ ${String(response?.text??'')}
 			let response=await this.RequestResponse(request.Prompt, request.Options);
 			if (turn?.signal.aborted) return null;
 			if (!response.IsValid||!response.MethodName) {
-				let details=$this.m_methods.CompleteResponse(responses.concat(response.IsValid?[response]:[]), lastResult);
-				return new ConsultationResult(response, details);
+				return $this.m_methods.CompleteResponse(responses.concat(response.IsValid?[response]:[]), lastResult, response.Reply);
 			}
-			if (response.Reply.trim()) this.Reply(response.Reply, new ResponseDetails());
+			if (response.Reply.trim()) this.Reply(new Response(response.Reply));
 			if (turn?.signal.aborted) return null;
 			responses.push(response);
 			try {
@@ -159,7 +158,7 @@ MethodName 使用現有類型與其方法的完整名稱；Arguments 是該方�
 		if (!message||this.IsConsulting()) return;
 		let turn=$this.m_activeTurn=new AbortController();
 		try {
-			$this.m_conversation.Add('user', message, new ResponseDetails());
+			$this.m_conversation.Add('user', message);
 			_(this).Notify();
 			await $this.Process(message, turn);
 		}
@@ -179,7 +178,7 @@ MethodName 使用現有類型與其方法的完整名稱；Arguments 是該方�
 	_['protected'].Process=async function (message, turn) {
 		await _(this).m_ready;
 		let result=await this.Consult((completed)=>_(this).GetRequest(message, completed), turn);
-		if (result) this.Reply(result.Response.Reply, result.Details);
+		if (result) this.Reply(result);
 	};
 	_['protected'].NotifyAssistant=async function (event, details, attachment) {
 		try {
@@ -196,8 +195,8 @@ ${recent}
 			let options={systemInstruction: this.GetInstruction('', '')};
 			let request=new AssistantRequest(prompt, options);
 			let result=await this.Consult((completed)=>this.GetMethods().GetContinuation(request, completed), null);
-			if (attachment) result.Details.Attachment=$this.m_methods.NormalizeAttachment(attachment);
-			this.Reply(result.Response.Reply, result.Details);
+			if (attachment) result.Attachment=$this.m_methods.NormalizeAttachment(attachment);
+			this.Reply(result);
 		}
 		catch (error) { this.ReportError(error); }
 	};

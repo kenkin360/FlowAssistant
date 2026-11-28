@@ -24,7 +24,7 @@ var ConversationOpening=Function.extend(Object, function () {
 			let previous=assistant.GetMessages().length;
 			let request=new AssistantRequest(prompt, options);
 			let result=await assistant.Consult((completed)=>methods.GetContinuation(request, completed), null);
-			if (!previous&&!assistant.GetMessages().slice(previous).some((entry)=>entry.Sender==='user')) assistant.Reply(result.Response.Reply, result.Details);
+			if (!previous&&!assistant.GetMessages().slice(previous).some((entry)=>entry.Sender==='user')) assistant.Reply(result);
 		}
 		catch (error) { console.error('Conversation opening failed:', error); assistant.ReportError(error); }
 	};

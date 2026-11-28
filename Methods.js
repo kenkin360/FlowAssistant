@@ -46,7 +46,8 @@ ${completed.map(JSON.stringify).join('\n')}
 			throw new Error('MethodName must identify an existing method on a type.');
 		}
 		let [owner, name]=methodName.split('.');
-		let target=Object.prototype.hasOwnProperty.call(this, owner)?this[owner]:this.Modules.GetRuntime().Modules[owner];
+		let local=Object.prototype.hasOwnProperty.call(this, owner);
+		let target=local?this[owner]:this.Modules.GetRuntime().Modules[owner];
 		let method=target?.[name];
 		let prototype=target&&Object.getPrototypeOf(target);
 		if (!target||'function'!==typeof method||!Object.prototype.hasOwnProperty.call(target, name)&&!Object.prototype.hasOwnProperty.call(prototype, name)) {
@@ -55,13 +56,13 @@ Method not found: ${methodName}
 `);
 		}
 		await this.Modules.GetStartup();
-		let needsMedia=!Object.prototype.hasOwnProperty.call(this, owner)||owner==='VideoService'&&name==='Generate'&&(args.useCurrentImageAsFirstFrame||args.useCurrentImageAsReference);
+		let needsMedia=!local||owner==='VideoService'&&name==='Generate'&&(args.useCurrentImageAsFirstFrame||args.useCurrentImageAsReference);
 		let media=this.ImageService.GetWorkspace();
 		let selected=media.GetActiveMedia();
 		let image=needsMedia&&selected instanceof Media.Image?await media.GetLegacyMedia(selected):null;
 		let artifact=needsMedia?(media.GetCurrentMedia()===selected&&image?image:await media.GetLegacyMedia(media.GetCurrentMedia())):null;
 		let context=new MethodContext(image, artifact);
-		let value=await method.call(target, args, context);
+		let value=await method.call(target, args, local?context:context.ToLegacy());
 		let output=null;
 		let message=value instanceof MethodResult?value.Message:value?.message;
 		if (value instanceof Media) output=value;
@@ -98,7 +99,7 @@ ${methodName} 已完成。
 ${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成')}
 `, null);
 	};
-	_['public'].CompleteResponse=function (responses, result) {
+	_['public'].CompleteResponse=function (responses, result, reply) {
 		let suggestedPrompt=null;
 		let aspectRatio=null;
 		for (let response of responses) {
@@ -108,7 +109,7 @@ ${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'�
 		let workspace=this.ImageService.GetWorkspace();
 		let current=result?.Artifact||workspace.GetCurrentMedia();
 		let attachment=result?.Artifact instanceof Media.Image||result?.Artifact instanceof Media.Video?result.Artifact:current instanceof Media.Video?current:null;
-		return new ResponseDetails(attachment, suggestedPrompt, aspectRatio);
+		return new Response(reply, attachment, suggestedPrompt, aspectRatio);
 	};
 	_['public'].NormalizeAttachment=function (value) { return this.ImageService.GetWorkspace().ToMedia(value); };
 	_['public'].Sources=null;
