@@ -3,7 +3,7 @@ var AssistantResponse=Function.extend(Response, function () {
 	AssistantResponse=_[AssistantResponse];
 
 	function AssistantResponse(value, isValid) {
-		_['base'].call(this, value?.reply, null, value?.suggestedPrompt, value?.aspectRatio);
+		_['base'].call(this, value?.reply);
 		this.MethodName=value?.MethodName??null;
 		this.Arguments=value?.Arguments??null;
 		this.IsValid=isValid===true;

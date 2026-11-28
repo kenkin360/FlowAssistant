@@ -113,18 +113,16 @@ ${String(response?.text??'')}
 	_['public'].Consult=async function (getRequest, turn) {
 		let $this=_(this);
 		let completed=[];
-		let responses=[];
 		let lastResult=null;
 		while (!turn?.signal.aborted) {
 			let request=await getRequest(completed);
 			let response=await this.RequestResponse(request.Prompt, request.Options);
 			if (turn?.signal.aborted) return null;
 			if (!response.IsValid||!response.MethodName) {
-				return $this.m_methods.CompleteResponse(responses.concat(response.IsValid?[response]:[]), lastResult, response.Reply);
+				return $this.m_methods.CompleteResponse(lastResult, response.Reply);
 			}
 			if (response.Reply.trim()) this.Reply(new Response(response.Reply));
 			if (turn?.signal.aborted) return null;
-			responses.push(response);
 			try {
 				lastResult=await $this.m_methods.Invoke(response.MethodName, response.Arguments);
 				completed.push(new MethodExecution(response.MethodName, lastResult, null));

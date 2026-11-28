@@ -40,7 +40,7 @@ var MainRenderer=Function.extend(React.Component, function () {
 
 	_['public'].componentDidMount=function () {
 		let $this=_(this);
-		$this.m_unsubscribe=$this.m_assistant.Subscribe((details)=>{ $this.m_view.ApplySuggestions(details); $this.Update(); });
+		$this.m_unsubscribe=$this.m_assistant.Subscribe(()=>this.Update());
 		let root=$this.m_view.GetRoot();
 		root.onclick=(event)=>{ $this.HandleClick(event).catch((error)=>$this.ReportError(error)); };
 		root.onkeydown=(event)=>{ $this.HandleKeyDown(event).catch((error)=>$this.ReportError(error)); };

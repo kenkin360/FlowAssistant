@@ -99,17 +99,11 @@ ${methodName} 已完成。
 ${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成')}
 `, null);
 	};
-	_['public'].CompleteResponse=function (responses, result, reply) {
-		let suggestedPrompt=null;
-		let aspectRatio=null;
-		for (let response of responses) {
-			if ('string'===typeof response.SuggestedPrompt) suggestedPrompt=response.SuggestedPrompt;
-			if ('string'===typeof response.AspectRatio) aspectRatio=response.AspectRatio;
-		}
+	_['public'].CompleteResponse=function (result, reply) {
 		let workspace=this.ImageService.GetWorkspace();
 		let current=result?.Artifact||workspace.GetCurrentMedia();
 		let attachment=result?.Artifact instanceof Media.Image||result?.Artifact instanceof Media.Video?result.Artifact:current instanceof Media.Video?current:null;
-		return new Response(reply, attachment, suggestedPrompt, aspectRatio);
+		return new ConversationResponse(reply, attachment);
 	};
 	_['public'].NormalizeAttachment=function (value) { return this.ImageService.GetWorkspace().ToMedia(value); };
 	_['public'].Sources=null;

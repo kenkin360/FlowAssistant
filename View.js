@@ -45,10 +45,6 @@ var View=Function.extend(Object, function () {
 		if (![...buttons].some((button)=>button.dataset.ratio===ratio)) return;
 		for (let button of buttons) button.classList.toggle('ca-selected', button.dataset.ratio===ratio);
 	};
-	_['public'].ApplySuggestions=function (suggestions) {
-		if ('string'===typeof suggestions?.SuggestedPrompt) _(this).SetPrompt(suggestions.SuggestedPrompt);
-		if ('string'===typeof suggestions?.AspectRatio) this.SetRatio(suggestions.AspectRatio);
-	};
 	_['public'].GetLocale=function () {
 		let locale=navigator.language||'en';
 		return /^en(?:-|$)/i.test(locale)?'en':locale;
