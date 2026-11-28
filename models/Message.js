@@ -6,7 +6,7 @@ var Message=Function.extend(Object, function () {
 		this.Id=id??null;
 		this.Sender=sender??'';
 		this.Text=text??'';
-		this.Timestamp=timestamp??'';
+		this.Timestamp=timestamp??null;
 		this.Attachment=attachment??null;
 	}
 	_['public'].toJSON=function () {
@@ -15,6 +15,6 @@ var Message=Function.extend(Object, function () {
 	_['public'].Id=null;
 	_['public'].Sender='';
 	_['public'].Text='';
-	_['public'].Timestamp='';
+	_['public'].Timestamp=null;
 	_['public'].Attachment=null;
 });

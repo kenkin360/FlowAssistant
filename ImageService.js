@@ -10,12 +10,13 @@ var ImageService=Function.extend(Object, function () {
 	}
 	ImageService.ModelDisplayName='🍌 Nano Banana 2.1';
 	_['public'].GetWorkspace=function () { return _(this).m_workspace; };
-	_['public'].GetLegacyModuleInput=async function () {
+	_['public'].GetInvocationInput=async function (previousResult) {
 		let workspace=this.GetWorkspace();
 		let selected=workspace.GetActiveMedia();
 		let image=selected instanceof Media.Image?await workspace.GetLegacyMedia(selected):null;
-		let current=workspace.GetCurrentMedia();
-		let artifact=current===selected&&image?image:await workspace.GetLegacyMedia(current);
+		let current=previousResult??workspace.GetCurrentMedia();
+		let media=current instanceof Media?current:this.GetAttachment(current);
+		let artifact=media===selected&&image?image:media?await workspace.GetLegacyMedia(media):current;
 		return {image, artifact};
 	};
 	_['public'].IsGenerating=function () { return _(this).m_generating; };
@@ -25,6 +26,41 @@ var ImageService=Function.extend(Object, function () {
 	_['public'].GetRequestImages=async function (attachment) {
 		if (!(attachment instanceof Media.Image)) return [];
 		return [{base64: await attachment.ToBase64(), mimeType: attachment.MimeType}];
+	};
+	_['public'].GetRequestOptions=async function (attachment) {
+		let images=await this.GetRequestImages(attachment);
+		return images.length?{images}:null;
+	};
+	_['public'].GetAttachment=function (value) {
+		if (value instanceof Media.Image||value instanceof Media.Video) return value;
+		let media=value?.artifact;
+		if (media instanceof Media.Image||media instanceof Media.Video) return media;
+		media=value?.image;
+		return media instanceof Media.Image||media instanceof Media.Video?media:null;
+	};
+	_['public'].CompleteInvocation=async function (value, input, methodName) {
+		let member=value?.artifact!=null?'artifact':value?.image!=null?'image':null;
+		let output=member?value[member]:value;
+		if (output&&'object'===typeof output&&!(output instanceof Media)&&output.mediaId&&output.mimeType&&!output.data&&!output.base64) {
+			let content=await Flow.media.getBase64({mediaId: output.mediaId});
+			output={...output, ...content, mediaId: output.mediaId};
+		}
+		if (output instanceof Media||output?.mimeType&&(output.base64||output.data instanceof Blob)) {
+			if (!(output instanceof Media)) {
+				output=/^image\//.test(output.mimeType)&&output.base64
+					?await this.ReadImageOutput(output, input?.image, methodName)
+					:this.GetWorkspace().ToMedia(output);
+			}
+			if (output) {
+				this.GetWorkspace().Add(output);
+				if (member) {
+					value[member]=output;
+					return value;
+				}
+				return output;
+			}
+		}
+		return value;
 	};
 	_['public'].SelectCurrent=async function () {
 		try {
