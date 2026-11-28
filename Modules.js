@@ -23,11 +23,11 @@ var Modules=Function.extend(Object, function () {
 		let runtime=this.GetRuntime();
 		if ('string'===typeof args.name) {
 			let method=runtime.Modules[args.name]?.Run;
-			if ('function'!==typeof method) throw new Error('Method not found: '+args.name+'.Run');
-			return {message: args.name+'.Run：'+(method.Description||String(method))};
+			if ('function'!==typeof method) throw new Error(`Method not found: ${args.name}.Run`);
+			return {message: `${args.name}.Run：${method.Description||String(method)}`};
 		}
 		let names=_(this).GetNames();
-		return {message: '可呼叫模組：'+(names.map((name)=>name+'.Run'+(runtime.Modules[name].Run.Description?'：'+runtime.Modules[name].Run.Description:'')).join('；')||'無')+'。編譯原碼：'+JSON.stringify(_(this).m_sources.CompiledNames())+'。可回復的模組安裝：'+_(this).GetVersionCount()+'。'};
+		return {message: `可呼叫模組：${names.map((name)=>`${name}.Run${runtime.Modules[name].Run.Description?`：${runtime.Modules[name].Run.Description}`:''}`).join('；')||'無'}。編譯原碼：${JSON.stringify(_(this).m_sources.CompiledNames())}。可回復的模組安裝：${_(this).GetVersionCount()}。`};
 	};
 	_['protected'].RestoreGlobal=function (name, descriptor) {
 		if (descriptor) descriptor.Restore(globalThis, name);
@@ -58,9 +58,9 @@ var Modules=Function.extend(Object, function () {
 		return $this.m_startup;
 	};
 	_['protected'].Register=function (name, value, source, remote, track, previousGlobal) {
-		if (value==null) throw new Error(name+' did not expose a module value.');
+		if (value==null) throw new Error(`${name} did not expose a module value.`);
 		let runtime=this.GetRuntime();
-		if (undefined!==value.Run&&'function'!==typeof value.Run) throw new Error(name+' has an invalid Run method.');
+		if (undefined!==value.Run&&'function'!==typeof value.Run) throw new Error(`${name} has an invalid Run method.`);
 		let installation=new Installation(name, previousGlobal, Binding.Capture(runtime.Modules, name), this.m_sources.GetInstalled(name));
 		runtime.Modules[name]=value;
 		this.m_sources.SetInstalled(name, new Source(name, source, undefined, remote));
@@ -74,7 +74,7 @@ var Modules=Function.extend(Object, function () {
 		if ('string'!==typeof source||!source.trim()) throw new Error('Provide module source or a script URL.');
 		if ('function'!==typeof Type||!(Type.prototype instanceof Resource)) throw new Error('Provide a Resource type for the module.');
 		let remote=Type===Resource.Module||Type.prototype instanceof Resource.Module;
-		if (remote&&$this.GetRuntime().Modules[name]) return {message: name+' is already loaded.'};
+		if (remote&&$this.GetRuntime().Modules[name]) return {message: `${name} is already loaded.`};
 		let previousGlobal=Binding.Capture(globalThis, name);
 		try {
 			let value=await new Type(name, source, readyMember);
@@ -96,11 +96,12 @@ var Modules=Function.extend(Object, function () {
 		return names.length?names.join(', '):'(無)';
 	};
 	_['public'].GetInstruction=function () {
-		return '原碼查閱：Sources.ReadCompiledSource、Sources.ReadRemoteSource、Sources.ReadInstalledSource；不給 Arguments 可列出可用來源。'
-			+'環境資訊：Modules.InspectRuntime。安裝模組：Modules.Install，Arguments 為 {name,source,sourceType}，sourceType 使用 javascript、js、text 或 url。'
-			+'撤銷安裝：Modules.Rollback。清空對話：Conversation.Clear。'
-			+'已安裝模組以模組名稱加 .Run 呼叫，例如 DrawRectangle.Run。編寫模組時使用頂層 var 與 Function.extend(Base, factory)，靜態 Run 接收 Arguments 與執行環境。'
-			+'本輪載入模組：'+_(this).DescribeDynamic()+'。';
+		return `
+原碼查閱：Sources.ReadCompiledSource、Sources.ReadRemoteSource、Sources.ReadInstalledSource；省略檔名可列出來源。現有模組：Modules.InspectRuntime。
+要編寫新模組時，先以 Sources.ReadRemoteSource 查閱相近模組的實際原碼（例如 name 為 DrawRectangle），依其 Function.extend 宣告、公開方法與靜態 Run 的方式編寫完整 JavaScript。
+使用 Modules.Install，Arguments 為 {"name":"類型名稱","source":"完整 JavaScript 原碼","sourceType":"javascript"}。頂層 var 名稱須與 name 相同，並公開靜態 Run(args, context)。source 是 JSON 字串，其中的換行以 \\n 表示。
+安裝結果會交還給你；安裝完成後呼叫 類型名稱.Run，依執行結果回答。撤銷安裝：Modules.Rollback。清空對話：Conversation.Clear。本輪載入模組：${_(this).DescribeDynamic()}。
+`;
 	};
 	_['protected'].m_sources=null;
 	_['protected'].m_versions=null;

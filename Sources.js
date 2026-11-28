@@ -9,7 +9,14 @@ var Sources=Function.extend(Object, function () {
 	}
 	_['protected'].GetCompiled=function () { return _(this).Parse(_(this).m_hostSourceUrl); };
 	_['public'].CompiledNames=function () { try { return [..._(this).GetCompiled().keys()]; } catch (error) { console.error('Compiled source unavailable:', error); return []; } };
-	_['protected'].GetEntries=function () { return [...Bundle.Config, ['DrawRectangle', Bundle.SourceUrl('extensions/DrawRectangle.js')], ['Upscale', Bundle.SourceUrl('extensions/Upscale.js')]].map(([name, url, readyMember])=>new Source(name, url, readyMember)); };
+	_['protected'].GetEntries=function () {
+		let entries=[...Bundle.Config
+			, ['Function.extend.js', Bundle.SourceUrl('Function.extend.js')]
+			, ['DrawRectangle', Bundle.SourceUrl('extensions/DrawRectangle.js')]
+			, ['Upscale', Bundle.SourceUrl('extensions/Upscale.js')]
+		];
+		return entries.map(([name, url, readyMember])=>new Source(name, url, readyMember));
+	};
 	_['protected'].InstalledNames=function () { return [..._(this).m_installed.keys()]; };
 	_['public'].GetInstalled=function (name) { return _(this).m_installed.get(name); };
 	_['public'].SetInstalled=function (name, entry) {
@@ -28,34 +35,46 @@ var Sources=Function.extend(Object, function () {
 			let start=marker.index+marker[0].length;
 			let end=index+1<markers.length?markers[index+1].index:source.length;
 			let name=marker[1].trim();
-			files.set(name, (files.get(name)||'')+source.slice(start, end).replace(/^\/\/ virtual-export:default [^\r\n]+\r?\n/, ''));
+			files.set(name, `${files.get(name)||''}${source.slice(start, end).replace(/^\/\/ virtual-export:default [^\r\n]+\r?\n/, '')}`);
 		});
 		return files;
 	};
 	_['public'].ReadCompiledSource=function (args={}) {
 		if ('string'!==typeof args.file) return {message: `Compiled source files: ${JSON.stringify(this.CompiledNames())}`};
 		let compiled=_(this).GetCompiled();
-		if (!compiled.has(args.file)) throw new Error('Compiled source file not found: '+args.file);
-		return {message: `${args.file}:\n${compiled.get(args.file)}`};
+		if (!compiled.has(args.file)) throw new Error(`Compiled source file not found: ${args.file}`);
+		return {message: `
+${args.file}:
+${compiled.get(args.file)}
+`};
 	};
 	_['public'].ReadRemoteSource=async function (args={}) {
 		let entries=_(this).GetEntries();
 		if ('string'!==typeof args.name) return {message: `Remote source entries: ${JSON.stringify(entries.map((entry)=>({name: entry.Name, url: entry.Value, readyMember: entry.ReadyMember})))}`};
 		let entry=entries.find((item)=>item.Name===args.name||item.Value.split(/[?#]/)[0].split('/').pop()===args.name);
-		if (!entry) throw new Error('Remote source not found: '+args.name);
+		if (!entry) throw new Error(`Remote source not found: ${args.name}`);
 		let response=await fetch(entry.Value);
 		if (!response.ok) throw new Error(`Failed to read ${args.name}: HTTP ${response.status}`);
-		return {message: `${entry.Name}:\n${await response.text()}`};
+		return {message: `
+${entry.Name}:
+${await response.text()}
+`};
 	};
 	_['public'].ReadInstalledSource=async function (args={}) {
 		let sources=_(this).m_installed;
 		if ('string'!==typeof args.name) return {message: `Installed modules: ${JSON.stringify(_(this).InstalledNames())}`};
 		let entry=sources.get(args.name);
-		if (!entry) throw new Error('Installed module not found: '+args.name);
-		if (!entry.Remote) return {message: `${args.name}:\n${entry.Value}`};
+		if (!entry) throw new Error(`Installed module not found: ${args.name}`);
+		if (!entry.Remote) return {message: `
+${args.name}:
+${entry.Value}
+`};
 		let response=await fetch(entry.Value);
 		if (!response.ok) throw new Error(`Failed to read ${args.name}: HTTP ${response.status}`);
-		return {message: `${args.name}:\n${await response.text()}`};
+		return {message: `
+${args.name}:
+${await response.text()}
+`};
 	};
 	_['protected'].m_hostSourceUrl=null;
 	_['protected'].m_installed=null;

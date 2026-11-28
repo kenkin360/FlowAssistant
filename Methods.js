@@ -10,16 +10,31 @@ var Methods=Function.extend(Object, function () {
 		this.Conversation=conversation;
 	}
 	_['public'].GetInstruction=function () {
-		return this.Modules.GetInstruction()+'\n'+this.ImageService.GetInstruction()+'\n'+this.VideoService.GetInstruction();
+		return `
+${this.Modules.GetInstruction()}
+${this.ImageService.GetInstruction()}
+${this.VideoService.GetInstruction()}
+`;
 	};
 	_['public'].GetRequest=async function (message, completed, messages, instruction) {
 		let prior=messages.slice();
 		if (prior.at(-1)?.Sender==='user'&&prior.at(-1)?.Text===message) prior.pop();
-		let history=prior.slice(-20).map((entry)=>entry.Sender+': '+entry.Text).join('\n\n');
+		let history=prior.slice(-20).map((entry)=>`${entry.Sender}: ${entry.Text}`).join('\n\n');
 		let context=await this.ImageService.GetRequestContext();
-		let prompt=context.Text+'\n先前對話：\n'+history+'\n本輪要求：\n'+message;
+		let prompt=`
+${context.Text}
+先前對話：
+${history}
+本輪要求：
+${message}
+`;
 		if (completed.length) {
-			prompt+='\n已完成的方法與實際結果：\n'+completed.map(JSON.stringify).join('\n')+'\n請依這些結果決定是否需要下一個方法，或直接回答使用者。';
+			prompt=`
+${prompt}
+已完成的方法與實際結果：
+${completed.map(JSON.stringify).join('\n')}
+請依這些結果決定是否需要下一個方法，或直接回答使用者。
+`;
 		}
 		let options={systemInstruction: instruction};
 		if (context.Images.length) options.images=context.Images;
@@ -34,7 +49,7 @@ var Methods=Function.extend(Object, function () {
 		let method=target?.[name];
 		let prototype=target&&Object.getPrototypeOf(target);
 		if (!target||'function'!==typeof method||!Object.prototype.hasOwnProperty.call(target, name)&&!Object.prototype.hasOwnProperty.call(prototype, name)) {
-			throw new Error('Method not found: '+methodName);
+			throw new Error(`Method not found: ${methodName}`);
 		}
 		await this.Modules.GetStartup();
 		let needsMedia=!Object.prototype.hasOwnProperty.call(this, owner)||owner==='VideoService'&&name==='Generate'&&(args.useCurrentImageAsFirstFrame||args.useCurrentImageAsReference);
@@ -69,10 +84,10 @@ var Methods=Function.extend(Object, function () {
 		}
 		if (output) {
 			let result=media.Add(output);
-			return {message: 'string'===typeof message?message:methodName+' 已完成。', artifact: result};
+			return {message: 'string'===typeof message?message:`${methodName} 已完成。`, artifact: result};
 		}
 		if (value&&'string'===typeof message) return value;
-		return {message: methodName+'：'+String('string'===typeof value?value:JSON.stringify(value)??'已完成').slice(0,12000)};
+		return {message: `${methodName}：${String('string'===typeof value?value:JSON.stringify(value)??'已完成').slice(0,12000)}`};
 	};
 	_['public'].CompleteResponse=function (reply, responses, result) {
 		let suggestions={};
