@@ -50,14 +50,15 @@ var Assistant=Function.extend(Object, function () {
 			let raw=(await Flow.generate.text(request, options))?.text;
 			if (signal?.aborted) return null;
 			let invalid=null;
-			try {
-				let value=JSON.parse(raw);
+			let value;
+			try { value=JSON.parse(raw); }
+			catch (error) { invalid=error; }
+			if (!invalid) {
 				if (value&&'object'===typeof value&&!Array.isArray(value)&&(value.reply==null||'string'===typeof value.reply)) {
 					return new AssistantResponse(value);
 				}
 				invalid='Expected a JSON object with a text reply.';
 			}
-			catch (error) { invalid=error; }
 			console.warn('Invalid assistant response:', invalid, raw);
 			request=`
 ${prompt}
