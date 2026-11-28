@@ -8,7 +8,7 @@ var Assistant=Function.extend(Object, function () {
 		$this.m_listeners=new Set();
 		$this.m_activeTurn=null;
 		$this.m_ready=Promise.resolve();
-		$this.m_methods=new Methods(sourceUrl, (event, details, attachment)=>$this.NotifyAssistant(event, details, attachment), ()=>$this.Notify());
+		$this.m_methods=new Methods(sourceUrl, (event, value)=>$this.NotifyAssistant(event, value), ()=>$this.Notify());
 	}
 	_['public'].GetMethods=function () { return _(this).m_methods; };
 	_['public'].GetMessages=function () { return _(this).m_conversation.GetMessages(); };
@@ -152,7 +152,7 @@ MethodName 使用現有類型與其方法的完整名稱；Arguments 是該方�
 		await this.Consult((completed)=>_(this).GetRequest(message, completed), turn,
 			(response, result)=>this.Reply(response, _(this).m_methods.GetAttachment(result)));
 	};
-	_['protected'].NotifyAssistant=async function (event, details, attachment) {
+	_['protected'].NotifyAssistant=async function (event, value) {
 		try {
 			let $this=_(this);
 			await $this.m_ready;
@@ -161,13 +161,13 @@ MethodName 使用現有類型與其方法的完整名稱；Arguments 是該方�
 最近對話：
 ${recent}
 事件：${event}
-實際結果：${JSON.stringify(details)}
+實際結果：${JSON.stringify(value)}
 請依目前對話語言，根據實際結果回答。
 `;
 			let options={systemInstruction: this.GetInstruction('', '')};
 			let request=new AssistantRequest(prompt, options);
 			await this.Consult((completed)=>this.GetMethods().GetContinuation(request, completed), null,
-				(response, result)=>this.Reply(response, attachment?$this.m_methods.NormalizeAttachment(attachment):$this.m_methods.GetAttachment(result)));
+				(response, result)=>this.Reply(response, $this.m_methods.GetAttachment(value)||$this.m_methods.GetAttachment(result)));
 		}
 		catch (error) { this.ReportError(error); }
 	};

@@ -87,7 +87,6 @@ Method not found: ${methodName}
 		}
 		return value;
 	};
-	_['public'].NormalizeAttachment=function (value) { return this.ImageService.GetWorkspace().ToMedia(value); };
 	_['public'].Sources=null;
 	_['public'].Modules=null;
 	_['public'].ImageService=null;

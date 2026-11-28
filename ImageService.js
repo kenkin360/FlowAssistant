@@ -31,20 +31,20 @@ var ImageService=Function.extend(Object, function () {
 			let image=await this.Select();
 			if (!image) return;
 			this.GetWorkspace().Add(image);
-			await _(this).m_notify('Media selected', new OperationDetails(image.Title, null, image.Width, image.Height, null), image);
+			await _(this).m_notify('Media selected', image);
 			return image;
 		}
-		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', error?.message||String(error)); }
 	};
 	_['public'].CaptureCurrent=async function () {
 		try {
 			let image=await this.Capture();
 			if (!image) return;
 			this.GetWorkspace().Add(image);
-			await _(this).m_notify('Camera image captured', new OperationDetails(image.Title, null, image.Width, image.Height, null), image);
+			await _(this).m_notify('Camera image captured', image);
 			return image;
 		}
-		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', error?.message||String(error)); }
 	};
 	_['public'].GenerateCurrent=async function (options) {
 		let $this=_(this);
@@ -56,10 +56,10 @@ var ImageService=Function.extend(Object, function () {
 		try {
 			let image=await this.Generate(options);
 			workspace.Add(image);
-			await $this.m_notify('Image generation completed', new OperationDetails(image.Title, text, image.Width, image.Height, null), image);
+			await $this.m_notify(`Image generation completed: ${text}`, image);
 			return image;
 		}
-		catch (error) { console.error('Image generation failed:', error); await $this.m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
+		catch (error) { console.error('Image generation failed:', error); await $this.m_notify('Operation failed', error?.message||String(error)); }
 		finally { $this.m_generating=false; workspace.NotifyChanged(); }
 	};
 	_['public'].DownloadCurrent=async function () {
@@ -69,7 +69,7 @@ var ImageService=Function.extend(Object, function () {
 			if (selected instanceof Media.Image) return await this.Download(await workspace.GetLegacyMedia(selected));
 			return null;
 		}
-		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', new OperationDetails(null, null, null, null, error.message||String(error)), null); }
+		catch (error) { console.error('Image operation failed:', error); await _(this).m_notify('Operation failed', error?.message||String(error)); }
 	};
 
 	_['protected'].GetDimensions=async function (image) {
