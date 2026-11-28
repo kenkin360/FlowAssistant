@@ -120,8 +120,13 @@ var ConversationMediator=Function.extend(Object, function () {
 		catch (error) { console.error('Conversation startup failed:', error); this.ReportError(error); }
 	};
 	_['public'].ReportResult=function (assistant, event, value) {
-		Promise.resolve(_(this).m_ready).then(()=>_(this).ProcessNotification(assistant, event, value))
-			.catch((error)=>this.ReportError(error));
+		let $this=_(this);
+		let previous=$this.m_waiting.get(assistant)||Promise.resolve();
+		let work=previous.then(()=>$this.m_ready).then(()=>$this.ProcessNotification(assistant, event, value))
+			.catch((error)=>this.ReportError(error)).finally(()=>{
+				if ($this.m_waiting.get(assistant)===work) $this.m_waiting.delete(assistant);
+			});
+		$this.m_waiting.set(assistant, work);
 	};
 	_['protected'].ProcessNotification=async function (assistant, event, value) {
 		let recent=this.GetMessages().map((entry)=>`${entry.Sender}: ${entry.Text}`).join('\n');
